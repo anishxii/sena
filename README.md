@@ -41,12 +41,19 @@ The integration driver is meant to clarify responsibilities before the real Syst
 - action scoring
 - action selection
 - online policy update from `RewardEvent`
+- optional persistence of generic weights and user residuals via SQLite
 
 Person 1 should treat reward semantics as external. The engine consumes:
 
 - `State`
 - canonical `ACTION_BANK`
 - `RewardEvent`
+
+If you want weights to persist across runs, initialize the engine with a `db_path`:
+
+```python
+engine = DecisionEngine(feature_dim=15, db_path="artifacts/decision_engine.sqlite")
+```
 
 ### Person 2 owns
 

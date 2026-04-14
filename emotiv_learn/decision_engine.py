@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import math
 import random
+import sqlite3
+from pathlib import Path
+
 from .schemas import ACTION_BANK, Action, ActionScores, PolicyInfo, RewardEvent, State
 
 
@@ -15,6 +19,7 @@ class DecisionEngine:
         alpha_user: float = 0.10,
         use_personalization: bool = True,
         seed: int | None = None,
+        db_path: str | None = None,
     ) -> None:
         if feature_dim <= 0:
             raise ValueError("feature_dim must be positive")
@@ -28,12 +33,17 @@ class DecisionEngine:
         self.use_personalization = use_personalization
         self.action_ids = [action.action_id for action in ACTION_BANK]
         self.rng = random.Random(seed)
+        self.db_path = db_path
 
         self.generic_weights: dict[str, list[float]] = {
             action_id: [0.0] * feature_dim for action_id in self.action_ids
         }
         self.user_residuals: dict[str, dict[str, list[float]]] = {}
         self._last_scored_policy_type: str = "personalized" if use_personalization else "generic"
+
+        if self.db_path is not None:
+            self._initialize_storage()
+            self._load_persisted_weights()
 
     def score_actions(self, state: State, action_bank: list[Action]) -> ActionScores:
         self._validate_action_bank(action_bank)
@@ -71,9 +81,11 @@ class DecisionEngine:
 
         error = reward_event.reward - total_score
         self._apply_update(self.generic_weights[action_id], features, self.alpha_generic * error)
+        self._persist_generic_action(action_id)
 
         if user_weights is not None:
             self._apply_update(user_weights, features, self.alpha_user * error)
+            self._persist_user_action(user_id, action_id)
 
     def _score_for_user(self, user_id: str, features: list[float]) -> dict[str, float]:
         scores: dict[str, float] = {}
@@ -115,7 +127,9 @@ class DecisionEngine:
             )
         if len(state.feature_names) != len(state.features):
             raise ValueError("state.feature_names must align with state.features")
-        return [float(value) for value in state.features]
+        features = [float(value) for value in state.features]
+        self._validate_numeric_vector(features, "state.features")
+        return features
 
     def _validate_selected_action(self, action_id: str) -> None:
         if action_id not in self.action_ids:
@@ -125,11 +139,105 @@ class DecisionEngine:
         self._validate_selected_action(reward_event.action_id)
         if not isinstance(reward_event.reward, (float, int)):
             raise ValueError("reward_event.reward must be numeric")
+        reward = float(reward_event.reward)
+        if not math.isfinite(reward):
+            raise ValueError("reward_event.reward must be finite")
         if len(reward_event.state_features) != self.feature_dim:
             raise ValueError(
                 "reward_event.state_features length must match engine feature_dim"
             )
-        return [float(value) for value in reward_event.state_features]
+        features = [float(value) for value in reward_event.state_features]
+        self._validate_numeric_vector(features, "reward_event.state_features")
+        return features
+
+    def _initialize_storage(self) -> None:
+        if self.db_path is None:
+            return
+
+        db_file = Path(self.db_path)
+        db_file.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db_file) as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS generic_weights (
+                    action_id TEXT NOT NULL,
+                    feature_index INTEGER NOT NULL,
+                    weight REAL NOT NULL,
+                    PRIMARY KEY (action_id, feature_index)
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_residuals (
+                    user_id TEXT NOT NULL,
+                    action_id TEXT NOT NULL,
+                    feature_index INTEGER NOT NULL,
+                    weight REAL NOT NULL,
+                    PRIMARY KEY (user_id, action_id, feature_index)
+                )
+                """
+            )
+
+    def _load_persisted_weights(self) -> None:
+        if self.db_path is None:
+            return
+
+        with sqlite3.connect(self.db_path) as conn:
+            for action_id, feature_index, weight in conn.execute(
+                "SELECT action_id, feature_index, weight FROM generic_weights"
+            ):
+                if action_id in self.generic_weights and 0 <= feature_index < self.feature_dim:
+                    self.generic_weights[action_id][feature_index] = float(weight)
+
+            for user_id, action_id, feature_index, weight in conn.execute(
+                "SELECT user_id, action_id, feature_index, weight FROM user_residuals"
+            ):
+                if action_id not in self.action_ids or not 0 <= feature_index < self.feature_dim:
+                    continue
+                user_weights = self._get_user_weights(user_id)
+                user_weights[action_id][feature_index] = float(weight)
+
+    def _persist_generic_action(self, action_id: str) -> None:
+        if self.db_path is None:
+            return
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                """
+                INSERT INTO generic_weights(action_id, feature_index, weight)
+                VALUES (?, ?, ?)
+                ON CONFLICT(action_id, feature_index)
+                DO UPDATE SET weight = excluded.weight
+                """,
+                [
+                    (action_id, feature_index, weight)
+                    for feature_index, weight in enumerate(self.generic_weights[action_id])
+                ],
+            )
+
+    def _persist_user_action(self, user_id: str, action_id: str) -> None:
+        if self.db_path is None:
+            return
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                """
+                INSERT INTO user_residuals(user_id, action_id, feature_index, weight)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, action_id, feature_index)
+                DO UPDATE SET weight = excluded.weight
+                """,
+                [
+                    (user_id, action_id, feature_index, weight)
+                    for feature_index, weight in enumerate(self.user_residuals[user_id][action_id])
+                ],
+            )
+
+    @staticmethod
+    def _validate_numeric_vector(values: list[float], label: str) -> None:
+        if any(not math.isfinite(value) for value in values):
+            raise ValueError(f"{label} must contain only finite numeric values")
 
     @staticmethod
     def _dot(left: list[float], right: list[float]) -> float:
