@@ -55,6 +55,20 @@ If you want weights to persist across runs, initialize the engine with a `db_pat
 engine = DecisionEngine(feature_dim=15, db_path="artifacts/decision_engine.sqlite")
 ```
 
+Useful stability knobs are also available:
+
+```python
+engine = DecisionEngine(
+    feature_dim=15,
+    db_path="artifacts/decision_engine.sqlite",
+    reward_clip_abs=1.5,
+    l2_weight_decay=0.001,
+    update_clip_abs=0.1,
+)
+```
+
+The engine also retains a bounded in-memory `update_history` with decision-time policy metadata and post-update error information for debugging.
+
 ### Person 2 owns
 
 - building `State` from raw observation

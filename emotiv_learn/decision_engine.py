@@ -3,9 +3,19 @@ from __future__ import annotations
 import math
 import random
 import sqlite3
+from collections import deque
 from pathlib import Path
 
-from .schemas import ACTION_BANK, Action, ActionScores, PolicyInfo, RewardEvent, State
+from .schemas import (
+    ACTION_BANK,
+    Action,
+    ActionScores,
+    DecisionTrace,
+    PolicyInfo,
+    RewardEvent,
+    State,
+    UpdateTrace,
+)
 
 
 class DecisionEngine:
@@ -20,17 +30,30 @@ class DecisionEngine:
         use_personalization: bool = True,
         seed: int | None = None,
         db_path: str | None = None,
+        reward_clip_abs: float | None = 1.5,
+        l2_weight_decay: float = 0.0,
+        update_clip_abs: float | None = None,
+        max_update_history: int = 200,
     ) -> None:
         if feature_dim <= 0:
             raise ValueError("feature_dim must be positive")
         if not 0.0 <= epsilon <= 1.0:
             raise ValueError("epsilon must be in [0.0, 1.0]")
+        if reward_clip_abs is not None and reward_clip_abs <= 0.0:
+            raise ValueError("reward_clip_abs must be positive when provided")
+        if l2_weight_decay < 0.0:
+            raise ValueError("l2_weight_decay must be non-negative")
+        if update_clip_abs is not None and update_clip_abs <= 0.0:
+            raise ValueError("update_clip_abs must be positive when provided")
 
         self.feature_dim = feature_dim
         self.epsilon = epsilon
         self.alpha_generic = alpha_generic
         self.alpha_user = alpha_user
         self.use_personalization = use_personalization
+        self.reward_clip_abs = reward_clip_abs
+        self.l2_weight_decay = l2_weight_decay
+        self.update_clip_abs = update_clip_abs
         self.action_ids = [action.action_id for action in ACTION_BANK]
         self.rng = random.Random(seed)
         self.db_path = db_path
@@ -40,6 +63,8 @@ class DecisionEngine:
         }
         self.user_residuals: dict[str, dict[str, list[float]]] = {}
         self._last_scored_policy_type: str = "personalized" if use_personalization else "generic"
+        self.pending_decision_traces: dict[str, DecisionTrace] = {}
+        self.update_history: deque[UpdateTrace] = deque(maxlen=max_update_history)
 
         if self.db_path is not None:
             self._initialize_storage()
@@ -51,7 +76,7 @@ class DecisionEngine:
         scores = self._score_for_user(state.user_id, features)
         selected_action, exploration = self._choose_action(scores)
 
-        return ActionScores(
+        action_scores = ActionScores(
             timestamp=state.timestamp,
             user_id=state.user_id,
             scores=scores,
@@ -61,6 +86,15 @@ class DecisionEngine:
                 exploration=exploration,
             ),
         )
+        self.pending_decision_traces[state.user_id] = DecisionTrace(
+            state_timestamp=state.timestamp,
+            user_id=state.user_id,
+            selected_action=selected_action,
+            policy_type=self._last_scored_policy_type,
+            exploration=exploration,
+            scores=dict(scores),
+        )
+        return action_scores
 
     def select_action(self, action_scores: ActionScores) -> Action:
         self._validate_selected_action(action_scores.selected_action)
@@ -70,22 +104,51 @@ class DecisionEngine:
         features = self._validate_reward_event(reward_event)
         action_id = reward_event.action_id
         user_id = reward_event.user_id
+        trace = self.pending_decision_traces.pop(user_id, None)
 
         generic_score = self._dot(self.generic_weights[action_id], features)
         total_score = generic_score
 
         user_weights: list[float] | None = None
+        user_score = 0.0
         if self.use_personalization:
             user_weights = self._get_user_weights(user_id)[action_id]
-            total_score += self._dot(user_weights, features)
+            user_score = self._dot(user_weights, features)
+            total_score += user_score
 
-        error = reward_event.reward - total_score
-        self._apply_update(self.generic_weights[action_id], features, self.alpha_generic * error)
+        reward = float(reward_event.reward)
+        if self.reward_clip_abs is not None:
+            reward = max(-self.reward_clip_abs, min(self.reward_clip_abs, reward))
+
+        error = reward - total_score
+        generic_scale = self.alpha_generic * error
+        user_scale = self.alpha_user * error
+        if self.update_clip_abs is not None:
+            generic_scale = max(-self.update_clip_abs, min(self.update_clip_abs, generic_scale))
+            user_scale = max(-self.update_clip_abs, min(self.update_clip_abs, user_scale))
+
+        self._apply_decay(self.generic_weights[action_id])
+        self._apply_update(self.generic_weights[action_id], features, generic_scale)
         self._persist_generic_action(action_id)
 
         if user_weights is not None:
-            self._apply_update(user_weights, features, self.alpha_user * error)
+            self._apply_decay(user_weights)
+            self._apply_update(user_weights, features, user_scale)
             self._persist_user_action(user_id, action_id)
+
+        self.update_history.append(
+            UpdateTrace(
+                user_id=user_id,
+                action_id=action_id,
+                reward=reward,
+                predicted_score=total_score,
+                error=error,
+                policy_type=trace.policy_type if trace is not None else None,
+                exploration=trace.exploration if trace is not None else None,
+                generic_score=generic_score,
+                user_score=user_score,
+            )
+        )
 
     def _score_for_user(self, user_id: str, features: list[float]) -> dict[str, float]:
         scores: dict[str, float] = {}
@@ -149,6 +212,13 @@ class DecisionEngine:
         features = [float(value) for value in reward_event.state_features]
         self._validate_numeric_vector(features, "reward_event.state_features")
         return features
+
+    def _apply_decay(self, weights: list[float]) -> None:
+        if self.l2_weight_decay <= 0.0:
+            return
+        shrink = 1.0 - self.l2_weight_decay
+        for index in range(len(weights)):
+            weights[index] *= shrink
 
     def _initialize_storage(self) -> None:
         if self.db_path is None:

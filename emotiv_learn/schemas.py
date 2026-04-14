@@ -81,6 +81,29 @@ class RewardEvent:
     outcome: Outcome
 
 
+@dataclass(frozen=True)
+class DecisionTrace:
+    state_timestamp: int
+    user_id: str
+    selected_action: str
+    policy_type: str
+    exploration: bool
+    scores: dict[str, float]
+
+
+@dataclass(frozen=True)
+class UpdateTrace:
+    user_id: str
+    action_id: str
+    reward: float
+    predicted_score: float
+    error: float
+    policy_type: str | None
+    exploration: bool | None
+    generic_score: float
+    user_score: float
+
+
 CANONICAL_ACTION_IDS = [
     "no_change",
     "simplify",

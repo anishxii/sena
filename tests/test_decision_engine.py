@@ -194,3 +194,54 @@ def test_persists_and_reloads_weights_with_sqlite(tmp_path) -> None:
         first_scores.scores["worked_example"]
     )
     assert second_scores.scores["worked_example"] > 0.0
+
+
+def test_update_history_captures_decision_time_trace() -> None:
+    state = build_state(user_id="trace_user")
+    engine = DecisionEngine(feature_dim=len(state.features), epsilon=0.0, seed=7)
+
+    action_scores = engine.score_actions(state, ACTION_BANK)
+    reward_event = build_reward_event(state, action_id=action_scores.selected_action, reward=0.9)
+    engine.update(reward_event)
+
+    update_trace = engine.update_history[-1]
+    assert update_trace.user_id == "trace_user"
+    assert update_trace.action_id == action_scores.selected_action
+    assert update_trace.policy_type == action_scores.policy_info.policy_type
+    assert update_trace.exploration is False
+
+
+def test_reward_clipping_applies_before_update_history() -> None:
+    state = build_state()
+    engine = DecisionEngine(
+        feature_dim=len(state.features),
+        epsilon=0.0,
+        seed=7,
+        reward_clip_abs=1.0,
+    )
+
+    reward_event = build_reward_event(state, action_id="deepen", reward=10.0)
+    engine.update(reward_event)
+
+    assert engine.update_history[-1].reward == 1.0
+
+
+def test_weight_decay_shrinks_existing_weight_before_update() -> None:
+    state = build_state()
+    engine = DecisionEngine(
+        feature_dim=len(state.features),
+        epsilon=0.0,
+        seed=7,
+        use_personalization=False,
+        l2_weight_decay=0.10,
+    )
+
+    first_event = build_reward_event(state, action_id="worked_example", reward=1.0)
+    second_event = build_reward_event(state, action_id="worked_example", reward=0.0)
+
+    engine.update(first_event)
+    first_score = engine.score_actions(state, ACTION_BANK).scores["worked_example"]
+    engine.update(second_event)
+    second_score = engine.score_actions(state, ACTION_BANK).scores["worked_example"]
+
+    assert second_score < first_score
