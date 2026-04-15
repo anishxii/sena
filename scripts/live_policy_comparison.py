@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
+from emotiv_learn.eeg import EEGObservationContext, SyntheticEEGProvider, estimate_time_on_chunk
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import (
     StudentPromptInput,
@@ -118,6 +119,7 @@ def run_policy_mode_live(
 ) -> dict:
     rng = random.Random(seed)
     state_builder = LiveLLMStateBuilder()
+    eeg_provider = SyntheticEEGProvider(seed=seed)
     students = {
         user_id: HiddenKnowledgeStudent(_initial_state_for_user(user_id), seed=seed + index * 101)
         for index, user_id in enumerate(user_ids)
@@ -153,6 +155,7 @@ def run_policy_mode_live(
                     interpreted=tracker["previous_interpreted"],
                     student_response=tracker["previous_student_response"],
                     previous_reward=tracker["previous_reward"],
+                    eeg_window=tracker["previous_eeg_window"],
                 )
             )
             action_id = _select_action(policy_mode, engine, state, rng)
@@ -210,6 +213,19 @@ def run_policy_mode_live(
             )
             interpreted["followup_type"] = transition.sampled_response_type
             reward = compute_reward_from_interpreted(interpreted)
+            time_on_chunk = estimate_time_on_chunk(tutor_message)
+            eeg_window = eeg_provider.observe(
+                EEGObservationContext(
+                    timestamp=turn_index,
+                    user_id=user_id,
+                    concept_id=concept_id,
+                    action_id=action_id,
+                    tutor_message=tutor_message,
+                    time_on_chunk=time_on_chunk,
+                    hidden_state=transition.to_dict()["hidden_state_after"],
+                    observable_signals=transition.observable_signals,
+                )
+            )
 
             if engine is not None:
                 outcome = _make_outcome(turn_index, user_id, action_id, interpreted, student_response, tutor_message)
@@ -234,6 +250,7 @@ def run_policy_mode_live(
                 interpreted=interpreted,
                 student_response=student_response,
                 reward=reward,
+                eeg_window=eeg_window,
             )
             turn_logs.append(
                 {
@@ -245,6 +262,7 @@ def run_policy_mode_live(
                     "tutor_message": tutor_message,
                     "student_response": student_response,
                     "interpreted": interpreted,
+                    "eeg_window": asdict(eeg_window),
                     "reward": reward,
                     "student_transition": transition.to_dict(),
                     "update_trace": update_trace,
@@ -287,6 +305,7 @@ def _new_tracker() -> dict:
         "previous_interpreted": None,
         "previous_student_response": None,
         "previous_reward": 0.0,
+        "previous_eeg_window": None,
         "conversation_summary": "The learner is beginning a short lesson.",
         "total_reward": 0.0,
         "total_oracle_gain": 0.0,
@@ -377,6 +396,7 @@ def _update_tracker(
     interpreted: dict,
     student_response: dict,
     reward: float,
+    eeg_window,
 ) -> None:
     tracker["total_reward"] += reward
     tracker["total_oracle_gain"] += transition.oracle_mastery_gain
@@ -388,6 +408,7 @@ def _update_tracker(
     tracker["previous_interpreted"] = interpreted
     tracker["previous_student_response"] = student_response
     tracker["previous_reward"] = reward
+    tracker["previous_eeg_window"] = eeg_window
     tracker["conversation_summary"] = (
         f"Previous action {action_id}; student responded {interpreted['followup_type']} "
         f"with reward {reward:.2f} and oracle mastery gain {transition.oracle_mastery_gain:.3f}."
