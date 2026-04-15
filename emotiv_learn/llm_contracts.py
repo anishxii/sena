@@ -271,6 +271,7 @@ def compute_reward_from_interpreted(interpreted: dict[str, Any]) -> float:
     reward += 0.2 * interpreted["engagement_score"]
     reward += 0.3 * int(interpreted["followup_type"] == "branch")
     reward += 0.1 * int(interpreted["followup_type"] == "continue")
+    reward -= 0.25 * int(interpreted["followup_type"] == "clarify")
     reward -= 0.6 * interpreted["confusion_score"]
     reward -= 0.3 * interpreted["pace_slow_score"]
     reward -= 0.2 * interpreted["pace_fast_score"]

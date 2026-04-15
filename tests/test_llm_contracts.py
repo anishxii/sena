@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from emotiv_learn.llm_contracts import (
     InterpreterPromptInput,
     StudentPromptInput,
@@ -99,3 +101,22 @@ def test_reward_is_deterministic_from_interpreted_signals() -> None:
     )
 
     assert compute_reward_from_interpreted(interpreted) == 1.5
+
+
+def test_clarify_followup_gets_explicit_penalty() -> None:
+    interpreted = normalize_interpreter_output(
+        {
+            "followup_type": "clarify",
+            "checkpoint_correct": None,
+            "checkpoint_score": None,
+            "confusion_score": 0.5,
+            "comprehension_score": 0.3,
+            "engagement_score": 0.4,
+            "progress_signal": 0.2,
+            "pace_fast_score": 0.0,
+            "pace_slow_score": 0.0,
+            "evidence": {"confusion_phrases": ["I am confused"]},
+        }
+    )
+
+    assert compute_reward_from_interpreted(interpreted) == pytest.approx(-0.23)
