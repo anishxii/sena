@@ -41,6 +41,12 @@ You may respond in one of three modes:
 - clarify: the student is confused or needs re-explanation
 - branch: the student is curious and asks a related follow-up question
 
+Response policy:
+- Prefer continue when mastery is high and confusion is low or moderate, even if the student feels slightly uncertain.
+- Prefer branch when curiosity is high and confusion is not high.
+- Prefer clarify only when confusion clearly dominates mastery or the tutor message did not address the student's need.
+- If the student gives a mostly correct checkpoint answer, do not default to clarify unless they truly need another explanation.
+
 If a checkpoint question is asked, answer it as the student would, given the current mastery and confusion levels. The answer may be correct, partially correct, or incorrect.
 
 Return valid JSON only."""
@@ -54,6 +60,8 @@ Do not reward the policy directly. Do not assign a final scalar reward. Only ext
 Be conservative. If evidence is unclear, use moderate scores rather than extreme scores.
 
 Use the checkpoint rubric if provided. If no checkpoint was asked, checkpoint_correct must be null.
+
+If a learner asks for clarification but also gives a mostly correct checkpoint answer, represent that as partial understanding rather than pure failure: lower confusion below severe levels, raise comprehension, and use progress_signal when there is evidence of learning.
 
 Return valid JSON only."""
 
@@ -75,9 +83,12 @@ class TutorPromptInput:
 @dataclass(frozen=True)
 class StudentPromptInput:
     learner_profile: dict[str, Any]
-    hidden_state: dict[str, float]
+    hidden_state: dict[str, Any]
     observable_signals: dict[str, Any]
     tutor_message: str
+    checkpoint_expected: bool = False
+    sampled_response_type: str | None = None
+    checkpoint_answer: str | None = None
 
 
 @dataclass(frozen=True)
@@ -131,24 +142,37 @@ def build_student_messages(prompt_input: StudentPromptInput) -> list[dict[str, s
 {json.dumps(prompt_input.learner_profile, indent=2)}
 
 Current hidden learner state:
-- mastery: {prompt_input.hidden_state["mastery"]}
-- confusion: {prompt_input.hidden_state["confusion"]}
-- curiosity: {prompt_input.hidden_state["curiosity"]}
-- fatigue: {prompt_input.hidden_state["fatigue"]}
-- engagement: {prompt_input.hidden_state["engagement"]}
+{json.dumps(prompt_input.hidden_state, indent=2)}
 
 Observable learner signals:
 {json.dumps(prompt_input.observable_signals, indent=2)}
 
+Checkpoint expected:
+{prompt_input.checkpoint_expected}
+
+Sampled response mode:
+{prompt_input.sampled_response_type}
+
+Checkpoint answer to use, if any:
+{prompt_input.checkpoint_answer}
+
 Tutor message:
 {prompt_input.tutor_message}
 
-If there is a checkpoint question, answer it naturally as this student.
+If checkpoint_expected is true, prioritize answering the checkpoint question in checkpoint_answer. You may still set response_type to clarify if the student is confused, but do not leave checkpoint_answer null unless the student truly cannot attempt an answer.
+If checkpoint_expected is false, checkpoint_answer should be null.
+If sampled_response_type is provided, you must use exactly that response_type. Do not choose a different mode.
 
 Choose the most realistic learner response mode:
 - continue
 - clarify
 - branch
+
+Use this response decision rule:
+- choose continue if mastery >= 0.70 and confusion <= 0.55
+- choose branch if curiosity >= 0.65 and confusion <= 0.60
+- choose clarify if confusion >= 0.65 and mastery < 0.70
+- if mastery and confusion conflict, trust recent checkpoint correctness and comprehension evidence more than the raw confusion value
 
 Return JSON in this exact schema:
 {{

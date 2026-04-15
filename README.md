@@ -63,6 +63,64 @@ OPENAI_API_KEY=... python3 scripts/llm_contract_live_run.py \
 
 You can optionally set `OPENAI_MODEL`; otherwise the lightweight client uses its default model.
 
+Run a short live LLM-backed policy-training loop without EEG features:
+
+```bash
+OPENAI_API_KEY=... python3 scripts/live_llm_training_loop.py \
+  --topic "gradient descent" \
+  --turns 3 \
+  --user-id live_user_a
+```
+
+This loop builds state from recent interpreted LLM signals rather than EEG:
+
+- confusion/comprehension/engagement/progress scores
+- response type one-hot values
+- student confidence
+- turn progress and difficulty
+- previous reward
+
+The live loop now uses a hidden-knowledge student simulator:
+
+- System 3 keeps private per-concept mastery, confidence, curiosity, attention, fatigue, engagement, style preferences, and misconceptions.
+- System 3 evaluates each Tutor LLM message from the student's perspective, updates hidden knowledge, emits observable learner signals, and samples the next learner response type.
+- System 1 only sees the fixed-length observable state vector built from emitted signals. It never receives hidden mastery or hidden preferences.
+- `oracle_mastery_gain` is logged for simulator evaluation only. It is not included in the `RewardEvent` used to update the policy.
+- The Student LLM only verbalizes the sampled response type; it does not choose whether the learner continues, clarifies, or branches.
+
+Compare the hidden-knowledge simulator across learned and non-learned baselines:
+
+```bash
+python3 scripts/knowledge_policy_comparison.py --turns 100 --seed 17
+```
+
+This compares:
+
+- `personalized`: shared generic weights plus user residuals
+- `generic`: learned shared weights only
+- `fixed_no_change`: no learned policy; always uses `no_change`
+- `random`: no learned policy; samples actions uniformly
+
+Run the live LLM comparison with a JSONL stream for the observability dashboard:
+
+```bash
+python3 scripts/live_policy_comparison.py \
+  --turns 10 \
+  --seed 17 \
+  --output artifacts/live_policy_comparison_10turn.json \
+  --events-output observability/public/live_policy_comparison_stream.jsonl
+```
+
+Launch the React observability dashboard:
+
+```bash
+cd observability
+npm install
+npm run dev
+```
+
+The dashboard polls `public/live_policy_comparison_stream.jsonl` while the experiment is running. You can also load a completed `artifacts/live_policy_comparison_*.json` file from the dashboard.
+
 The driver demonstrates this contract flow:
 
 1. A raw observation is converted into a fixed-length `State` by a stub `DemoStateBuilder`

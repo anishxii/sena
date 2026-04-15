@@ -47,9 +47,13 @@ def test_prompt_builders_include_schema_and_action_instruction() -> None:
             },
             observable_signals={"cognitive_load": 0.7},
             tutor_message="Here is a worked example.",
+            checkpoint_expected=True,
         )
     )
     assert '"response_type": "continue | clarify | branch"' in student_messages[1]["content"]
+    assert "Checkpoint expected:\nTrue" in student_messages[1]["content"]
+    assert "prioritize answering the checkpoint question" in student_messages[1]["content"]
+    assert "choose continue if mastery >= 0.70" in student_messages[1]["content"]
 
     interpreter_messages = build_interpreter_messages(
         InterpreterPromptInput(
@@ -63,6 +67,7 @@ def test_prompt_builders_include_schema_and_action_instruction() -> None:
         )
     )
     assert '"confusion_score": 0.0' in interpreter_messages[1]["content"]
+    assert "partial understanding rather than pure failure" in interpreter_messages[0]["content"]
 
 
 def test_json_parse_and_normalization() -> None:
