@@ -45,6 +45,24 @@ The viewer shows, for each turn:
 - System 3 outcome
 - System 2 reward event returned to System 1
 
+## LLM Contract Checks
+
+Run the prompt/reward contract without external API calls:
+
+```bash
+python3 scripts/llm_contract_dry_run.py
+```
+
+Run the same contract path with real OpenAI calls:
+
+```bash
+OPENAI_API_KEY=... python3 scripts/llm_contract_live_run.py \
+  --topic "gradient descent" \
+  --action-id worked_example
+```
+
+You can optionally set `OPENAI_MODEL`; otherwise the lightweight client uses its default model.
+
 The driver demonstrates this contract flow:
 
 1. A raw observation is converted into a fixed-length `State` by a stub `DemoStateBuilder`
