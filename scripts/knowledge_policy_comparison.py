@@ -10,7 +10,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
-from emotiv_learn.eeg import EEGObservationContext, SyntheticEEGProvider, estimate_time_on_chunk
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import compute_reward_from_interpreted
 from emotiv_learn.schemas import Outcome, RewardEvent, SemanticSignals, TaskResult
@@ -108,7 +107,6 @@ def run_comparison(turns: int, seed: int) -> dict[str, list[dict]]:
 def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
     rng = random.Random(seed)
     state_builder = LiveLLMStateBuilder()
-    eeg_provider = SyntheticEEGProvider(seed=seed)
     students = {
         user_id: HiddenKnowledgeStudent(_initial_state_for_user(user_id), seed=seed + index * 101)
         for index, user_id in enumerate(USER_PROFILES)
@@ -130,7 +128,6 @@ def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
             "previous_interpreted": None,
             "previous_student_response": None,
             "previous_reward": 0.0,
-            "previous_eeg_window": None,
             "total_reward": 0.0,
             "total_oracle_gain": 0.0,
             "checkpoint_correct": 0,
@@ -157,7 +154,6 @@ def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
                     interpreted=tracker["previous_interpreted"],
                     student_response=tracker["previous_student_response"],
                     previous_reward=tracker["previous_reward"],
-                    eeg_window=tracker["previous_eeg_window"],
                 )
             )
             action_id = _select_action(policy_mode, engine, state, rng)
@@ -170,19 +166,6 @@ def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
             )
             interpreted = _transition_to_interpreted(transition)
             reward = compute_reward_from_interpreted(interpreted)
-            time_on_chunk = estimate_time_on_chunk(tutor_message)
-            eeg_window = eeg_provider.observe(
-                EEGObservationContext(
-                    timestamp=turn_index,
-                    user_id=user_id,
-                    concept_id=concept_id,
-                    action_id=action_id,
-                    tutor_message=tutor_message,
-                    time_on_chunk=time_on_chunk,
-                    hidden_state=transition.to_dict()["hidden_state_after"],
-                    observable_signals=transition.observable_signals,
-                )
-            )
 
             if engine is not None:
                 outcome = _make_outcome(turn_index, user_id, action_id, interpreted)
@@ -211,7 +194,6 @@ def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
                 "self_reported_confidence": transition.observable_signals["confidence"],
             }
             tracker["previous_reward"] = reward
-            tracker["previous_eeg_window"] = eeg_window
 
     return [_summarize_user(user_id, trackers[user_id], turns) for user_id in USER_PROFILES]
 

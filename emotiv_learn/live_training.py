@@ -2,18 +2,27 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .eeg import EEG_SUMMARY_FEATURE_NAMES, EEGWindow
 from .schemas import State, StateMetadata
 
 
 LIVE_FEATURE_NAMES = [
+    "last_confusion_score",
+    "last_comprehension_score",
+    "last_engagement_score",
+    "last_progress_signal",
+    "last_pace_fast_score",
+    "last_pace_slow_score",
+    "last_response_continue",
+    "last_response_clarify",
+    "last_response_branch",
+    "last_response_other",
     "student_confidence",
     "turn_index_norm",
     "difficulty_easy",
     "difficulty_medium",
     "difficulty_hard",
     "previous_reward_norm",
-] + EEG_SUMMARY_FEATURE_NAMES
+]
 
 
 @dataclass(frozen=True)
@@ -28,25 +37,34 @@ class LiveStateInput:
     interpreted: dict | None
     student_response: dict | None
     previous_reward: float
-    eeg_window: EEGWindow | None
 
 
 class LiveLLMStateBuilder:
-    """Builds the RL state from non-interpreted context plus EEG observations."""
+    """Builds a compact non-EEG state from recent interpreted learner signals."""
 
     def build_state(self, state_input: LiveStateInput) -> State:
+        interpreted = state_input.interpreted or {}
         student_response = state_input.student_response or {}
-        eeg_window = state_input.eeg_window
+        followup_type = interpreted.get("followup_type", "unknown")
         difficulty = state_input.difficulty
 
         features = [
+            _score(interpreted.get("confusion_score"), default=0.5),
+            _score(interpreted.get("comprehension_score"), default=0.5),
+            _score(interpreted.get("engagement_score"), default=0.5),
+            _score(interpreted.get("progress_signal"), default=0.0),
+            _score(interpreted.get("pace_fast_score"), default=0.0),
+            _score(interpreted.get("pace_slow_score"), default=0.0),
+            1.0 if followup_type == "continue" else 0.0,
+            1.0 if followup_type == "clarify" else 0.0,
+            1.0 if followup_type == "branch" else 0.0,
+            1.0 if followup_type not in {"continue", "clarify", "branch"} else 0.0,
             _score(student_response.get("self_reported_confidence"), default=0.5),
             min(state_input.turn_index / max(state_input.max_turns, 1), 1.0),
             1.0 if difficulty == "easy" else 0.0,
             1.0 if difficulty == "medium" else 0.0,
             1.0 if difficulty == "hard" else 0.0,
             _normalize_reward(state_input.previous_reward),
-            *_eeg_features(eeg_window),
         ]
 
         return State(
@@ -71,16 +89,3 @@ def _score(value, default: float) -> float:
 def _normalize_reward(value: float) -> float:
     # Rewards are generally clipped to [-1.5, 1.5]; map to [0, 1].
     return max(0.0, min(1.0, (float(value) + 1.5) / 3.0))
-
-
-def _eeg_features(eeg_window: EEGWindow | None) -> list[float]:
-    if eeg_window is None:
-        return _default_eeg_features()
-
-    feature_map = dict(zip(eeg_window.feature_names, eeg_window.features, strict=False))
-    return [float(feature_map.get(name, default)) for name, default in zip(EEG_SUMMARY_FEATURE_NAMES, _default_eeg_features(), strict=False)]
-
-
-def _default_eeg_features() -> list[float]:
-    # Neutral EEG summary priors for first-turn state construction.
-    return [0.30, 0.30, 0.25, 0.15, 0.0, 0.0, 1.0, 0.5]

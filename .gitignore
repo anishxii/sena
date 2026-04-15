@@ -5,6 +5,9 @@ __pycache__/
 .env.*
 !.env.example
 artifacts/
-.env
+data/
 node_modules/
 observability/dist/
+observability/public/live_policy_comparison_stream.jsonl
+train/training_logs/
+.DS_Store

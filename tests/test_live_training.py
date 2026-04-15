@@ -1,4 +1,3 @@
-from emotiv_learn.eeg import EEGWindow, EEG_SUMMARY_FEATURE_NAMES
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 
 
@@ -23,12 +22,12 @@ def test_live_state_builder_uses_interpreted_signals_without_eeg() -> None:
             },
             student_response={"self_reported_confidence": 0.35},
             previous_reward=-0.23,
-            eeg_window=None,
         )
     )
 
     assert state.feature_names == LIVE_FEATURE_NAMES
     assert len(state.features) == len(LIVE_FEATURE_NAMES)
+    assert state.features[LIVE_FEATURE_NAMES.index("last_response_clarify")] == 1.0
     assert state.features[LIVE_FEATURE_NAMES.index("student_confidence")] == 0.35
     assert state.features[LIVE_FEATURE_NAMES.index("difficulty_medium")] == 1.0
 
@@ -46,42 +45,10 @@ def test_live_state_builder_defaults_are_valid_for_first_turn() -> None:
             interpreted=None,
             student_response=None,
             previous_reward=0.0,
-            eeg_window=None,
         )
     )
 
     assert len(state.features) == len(LIVE_FEATURE_NAMES)
+    assert state.features[LIVE_FEATURE_NAMES.index("last_response_other")] == 1.0
     assert state.features[LIVE_FEATURE_NAMES.index("student_confidence")] == 0.5
     assert state.features[LIVE_FEATURE_NAMES.index("difficulty_hard")] == 1.0
-
-
-def test_live_state_builder_includes_eeg_summary_features() -> None:
-    eeg_window = EEGWindow(
-        timestamp=1.0,
-        user_id="eeg_user",
-        channels=None,
-        fs=None,
-        features=[0.31, 0.29, 0.24, 0.16, 0.02, -0.01, 1.12, 0.58],
-        feature_names=EEG_SUMMARY_FEATURE_NAMES,
-        metadata={"source": "synthetic"},
-    )
-
-    state = LiveLLMStateBuilder().build_state(
-        LiveStateInput(
-            timestamp=2,
-            user_id="eeg_user",
-            topic_id="gradient_descent",
-            task_type="learn",
-            difficulty="easy",
-            turn_index=2,
-            max_turns=5,
-            interpreted=None,
-            student_response=None,
-            previous_reward=0.0,
-            eeg_window=eeg_window,
-        )
-    )
-
-    assert state.features[LIVE_FEATURE_NAMES.index("eeg_theta_mean")] == 0.31
-    assert state.features[LIVE_FEATURE_NAMES.index("eeg_frontal_theta_alpha_ratio_mean")] == 1.12
-    assert state.features[LIVE_FEATURE_NAMES.index("eeg_load_score")] == 0.58
