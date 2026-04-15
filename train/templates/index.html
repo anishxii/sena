@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotiv Learn - Training Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .new-sim-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .new-sim-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .new-sim-btn:active {
+            transform: translateY(0);
+        }
+
+        .simulations-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .sim-item {
+            padding: 12px 14px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            background: #f8f9fa;
+        }
+
+        .sim-item:hover {
+            background: #f0f2f5;
+            border-color: #e5e7eb;
+        }
+
+        .sim-item.active {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-color: #667eea40;
+        }
+
+        .sim-item-topic {
+            font-weight: 600;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #1a1a1a;
+        }
+
+        .sim-item-meta {
+            font-size: 11px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sim-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .sim-status.running { background: #10b981; color: white; }
+        .sim-status.paused { background: #f59e0b; color: white; }
+        .sim-status.completed { background: #6b7280; color: white; }
+        .sim-status.error { background: #ef4444; color: white; }
+        .sim-status.starting { background: #8b5cf6; color: white; }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .chat-header {
+            padding: 20px 32px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+        }
+
+        .chat-header .meta {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #1a1a1a;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: #f8f9fa;
+            border-color: #d1d5db;
+        }
+
+        .header-btn.pause {
+            background: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+
+        .header-btn.pause:hover {
+            background: #d97706;
+        }
+
+        .header-btn.resume {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .header-btn.resume:hover {
+            background: #059669;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            max-width: 900px;
+            margin: 0 auto 32px auto;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .message-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-icon.system {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-icon.user {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .message-label {
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 14px;
+        }
+
+        .message-sublabel {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .message-content {
+            background: #ffffff;
+            padding: 20px 24px;
+            border-radius: 12px;
+            line-height: 1.7;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            font-size: 14.5px;
+        }
+
+        .message-content pre {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid #e5e7eb;
+        }
+
+        .signals {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .signal-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .signal-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .signal-value {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .signal-value.high { color: #ef4444; }
+        .signal-value.medium { color: #f59e0b; }
+        .signal-value.low { color: #10b981; }
+
+        .eeg-preview {
+            margin-top: 12px;
+            font-size: 11px;
+            color: #9ca3af;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 520px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            letter-spacing: 0.2px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            background: #f8f9fa;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            color: #1a1a1a;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 32px;
+            color: #9ca3af;
+        }
+
+        .empty-state h2 {
+            font-size: 28px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            color: #6b7280;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .rl-action-chip {
+            max-width: 900px;
+            margin: 0 auto 32px auto;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 13px;
+            color: #92400e;
+            font-weight: 600;
+            border: 1px solid #fbbf2440;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 240px;
+            }
+            .chat-messages {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">⚡ Emotiv Learn</div>
+                <button class="new-sim-btn" onclick="openNewSimModal()">
+                    + New Simulation
+                </button>
+            </div>
+            <div class="simulations-list" id="simulationsList">
+                <!-- Simulations will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-header-content">
+                    <div>
+                        <h1>Emotiv Learn - Training Simulation</h1>
+                        <div class="meta">Select a simulation from the sidebar or start a new one</div>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="empty-state">
+                    <h2>Welcome to Emotiv Learn</h2>
+                    <p>Start a new simulation to see the adaptive learning system in action</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Simulation Modal -->
+    <div class="modal" id="newSimModal">
+        <div class="modal-content">
+            <div class="modal-header">Start New Simulation</div>
+            <form id="newSimForm" onsubmit="startSimulation(event)">
+                <div class="form-group">
+                    <label class="form-label">Learning Topic *</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        id="topicInput"
+                        placeholder="e.g., derivatives and how to calculate them"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Number of Steps</label>
+                    <input
+                        type="number"
+                        class="form-input"
+                        id="numStepsInput"
+                        value="8"
+                        min="1"
+                        max="20"
+                    >
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Subject ID</label>
+                    <select class="form-select" id="subjectInput">
+                        <option value="">Random</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewSimModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Start Simulation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let updateInterval = null;
+
+        // Load available subjects on page load
+        async function loadSubjects() {
+            try {
+                const response = await fetch('/api/subjects');
+                const data = await response.json();
+                const select = document.getElementById('subjectInput');
+                data.subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading subjects:', error);
+            }
+        }
+
+        // Load and display all simulations
+        async function loadSimulations() {
+            try {
+                const response = await fetch('/api/simulations');
+                const data = await response.json();
+                const listEl = document.getElementById('simulationsList');
+
+                if (data.simulations.length === 0) {
+                    listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 13px;">No simulations yet</div>';
+                    return;
+                }
+
+                listEl.innerHTML = data.simulations.map(sim => `
+                    <div class="sim-item ${sim.session_id === currentSessionId ? 'active' : ''}"
+                         onclick="selectSimulation('${sim.session_id}')">
+                        <div class="sim-item-topic">${sim.topic}</div>
+                        <div class="sim-item-meta">
+                            <span class="sim-status ${sim.status}">${sim.status}</span>
+                            <span>${sim.subject_id || 'loading...'}</span>
+                            <span style="margin-left: auto;">${sim.current_step}/${sim.num_steps}</span>
+                        </div>
+                        ${sim.status === 'running' ? `
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${sim.progress}%"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading simulations:', error);
+            }
+        }
+
+        // Pause/Resume simulation
+        async function togglePause(sessionId, action) {
+            try {
+                await fetch(`/api/simulations/${sessionId}/pause`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                await loadSimulations();
+                await loadSimulationSteps(sessionId);
+            } catch (error) {
+                console.error('Error toggling pause:', error);
+            }
+        }
+
+        // Select and display a simulation
+        async function selectSimulation(sessionId) {
+            currentSessionId = sessionId;
+            await loadSimulationSteps(sessionId);
+            loadSimulations(); // Refresh sidebar to show active state
+        }
+
+        // Load and display steps for a simulation
+        async function loadSimulationSteps(sessionId) {
+            try {
+                const response = await fetch(`/api/simulations/${sessionId}/steps`);
+                const data = await response.json();
+
+                // Update header
+                const simResponse = await fetch(`/api/simulations/${sessionId}`);
+                const simData = await simResponse.json();
+
+                const headerEl = document.getElementById('chatHeader');
+                const pauseBtn = simData.status === 'running'
+                    ? `<button class="header-btn pause" onclick="togglePause('${sessionId}', 'pause')">⏸ Pause</button>`
+                    : simData.status === 'paused'
+                    ? `<button class="header-btn resume" onclick="togglePause('${sessionId}', 'resume')">▶ Resume</button>`
+                    : '';
+
+                headerEl.innerHTML = `
+                    <div class="chat-header-content">
+                        <div>
+                            <h1>${simData.topic}</h1>
+                            <div class="meta">
+                                Subject: ${simData.subject_id || 'loading...'} •
+                                Rating: ${simData.subject_rating?.toFixed(1) || '?'}/9 •
+                                Steps: ${data.steps.length}/${simData.num_steps} •
+                                Status: ${simData.status}
+                            </div>
+                        </div>
+                        <div class="header-actions">
+                            ${pauseBtn}
+                        </div>
+                    </div>
+                `;
+
+                // Display steps
+                const messagesEl = document.getElementById('chatMessages');
+                if (data.steps.length === 0) {
+                    messagesEl.innerHTML = '<div class="loading">Generating lesson plan...</div>';
+                    return;
+                }
+
+                messagesEl.innerHTML = data.steps.map((step, idx) => {
+                    const loadClass = step.cognitive_load > 0.7 ? 'high' :
+                                     step.cognitive_load > 0.4 ? 'medium' : 'low';
+
+                    return `
+                        <div class="message">
+                            <div class="message-header">
+                                <div class="message-icon system">AI</div>
+                                <div>
+                                    <div class="message-label">Step ${step.step_number}: ${step.step_title}</div>
+                                    <div class="message-sublabel">
+                                        Action applied: ${step.optimization_action_applied}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="message-content">
+                                ${step.content}
+
+                                <div class="signals">
+                                    <div class="signal-item">
+                                        <div class="signal-label">Cognitive Load</div>
+                                        <div class="signal-value ${loadClass}">
+                                            ${(step.cognitive_load * 100).toFixed(0)}%
+                                        </div>
+                                    </div>
+                                    <div class="signal-item">
+                                        <div class="signal-label">Time on Chunk</div>
+                                        <div class="signal-value">
+                                            ${step.behavioral_cues.time_on_chunk}s
+                                        </div>
+                                    </div>
+                                    <div class="signal-item">
+                                        <div class="signal-label">Scroll Rate</div>
+                                        <div class="signal-value">
+                                            ${step.behavioral_cues.scroll_rate.toFixed(3)}
+                                        </div>
+                                    </div>
+                                    <div class="signal-item">
+                                        <div class="signal-label">Reread Count</div>
+                                        <div class="signal-value">
+                                            ${step.behavioral_cues.reread_count}
+                                        </div>
+                                    </div>
+                                    <div class="signal-item">
+                                        <div class="signal-label">Epochs Used</div>
+                                        <div class="signal-value">
+                                            ${step.epochs_consumed}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="eeg-preview">
+                                    EEG Features (62-dim): [${step.eeg_features.slice(0, 6).map(v => v.toFixed(3)).join(', ')}, ...]
+                                </div>
+                            </div>
+                        </div>
+
+                        ${step.user_prompt ? `
+                            <div class="message">
+                                <div class="message-header">
+                                    <div class="message-icon user">U</div>
+                                    <div>
+                                        <div class="message-label">Student Response</div>
+                                        <div class="message-sublabel">
+                                            Action: ${step.user_action}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="message-content">
+                                    ${step.user_prompt}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${idx < data.steps.length - 1 ? `
+                            <div class="rl-action-chip">
+                                🎯 RL Action: ${step.rl_action} → Next content will be ${step.rl_action}
+                            </div>
+                        ` : ''}
+                    `;
+                }).join('');
+
+                // Scroll to bottom
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            } catch (error) {
+                console.error('Error loading simulation steps:', error);
+            }
+        }
+
+        // Start a new simulation
+        async function startSimulation(event) {
+            event.preventDefault();
+
+            const topic = document.getElementById('topicInput').value;
+            const numSteps = parseInt(document.getElementById('numStepsInput').value);
+            const subjectId = document.getElementById('subjectInput').value || null;
+
+            try {
+                const response = await fetch('/api/simulations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic,
+                        num_steps: numSteps,
+                        subject_id: subjectId,
+                    })
+                });
+
+                const data = await response.json();
+                closeNewSimModal();
+
+                // Select the new simulation
+                currentSessionId = data.session_id;
+                await loadSimulations();
+                await selectSimulation(data.session_id);
+
+            } catch (error) {
+                console.error('Error starting simulation:', error);
+                alert('Failed to start simulation: ' + error.message);
+            }
+        }
+
+        // Modal controls
+        function openNewSimModal() {
+            document.getElementById('newSimModal').classList.add('active');
+        }
+
+        function closeNewSimModal() {
+            document.getElementById('newSimModal').classList.remove('active');
+            document.getElementById('newSimForm').reset();
+        }
+
+        // Auto-update active simulations
+        function startAutoUpdate() {
+            updateInterval = setInterval(async () => {
+                await loadSimulations();
+                if (currentSessionId) {
+                    // Check if current simulation is still running
+                    const response = await fetch(`/api/simulations/${currentSessionId}`);
+                    const data = await response.json();
+                    if (data.status === 'running' || data.status === 'starting' || data.status === 'initializing') {
+                        await loadSimulationSteps(currentSessionId);
+                    }
+                }
+            }, 2000); // Update every 2 seconds
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSubjects();
+            await loadSimulations();
+            startAutoUpdate();
+        });
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeNewSimModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -2,6 +2,28 @@
 
 This folder contains everything needed to run training simulations for the Emotiv Learn RL personalization model.
 
+## Two Ways to Run Simulations
+
+### 1. Web Interface (Recommended) 🌐
+Beautiful modern interface with real-time updates:
+```bash
+./start_web.sh
+# Then open http://localhost:3000
+```
+
+**Features:**
+- ✨ Modern light mode UI with Inter font
+- ⏸️ Pause/Resume simulations anytime
+- 🚀 Run multiple simulations in parallel
+- 📊 Real-time EEG and behavioral signals
+- 🎨 Gradient accents and smooth animations
+
+### 2. Command Line
+Traditional CLI for batch processing:
+```bash
+python train_simulation.py --topic "your topic" --num-steps 10
+```
+
 ## Files
 
 - **[train_simulation.py](train_simulation.py)** - Main orchestration script
@@ -22,7 +44,21 @@ This folder contains everything needed to run training simulations for the Emoti
   - Compare multiple sessions
   - Export data to CSV for RL training
 
-- **[example_run.sh](example_run.sh)** - Quick test script
+- **[web_interface.py](web_interface.py)** - Flask web server
+  - ChatGPT-like UI for running simulations
+  - Real-time updates and progress tracking
+  - Run multiple simulations concurrently
+  - Visual display of EEG signals and behavioral cues
+
+- **[templates/index.html](templates/index.html)** - Web UI template
+  - Modern, responsive design
+  - Live simulation monitoring
+  - Signal visualizations
+
+- **[start_web.sh](start_web.sh)** - Web interface launcher
+  - Validates setup and starts Flask server
+
+- **[example_run.sh](example_run.sh)** - CLI quick test script
   - Validates setup (API keys, STEW dataset)
   - Runs a short 5-step simulation
 
@@ -33,6 +69,30 @@ This folder contains everything needed to run training simulations for the Emoti
   - Troubleshooting
 
 ## Quick Start
+
+### Web Interface (Easiest)
+
+```bash
+cd train
+./start_web.sh
+```
+
+Then open http://localhost:3000 in your browser and:
+1. Click "+ New Simulation"
+2. Enter a topic (e.g., "derivatives and how to calculate them")
+3. Choose number of steps and subject ID (or random)
+4. Click "Start Simulation"
+5. Watch the simulation run in real-time!
+
+**Key Features:**
+- ⏸️ **Pause/Resume** - Pause any running simulation and resume later
+- 🚀 **Parallel execution** - Run multiple simulations at once
+- 📊 **Live signals** - See all EEG and behavioral cues in real-time
+- 🎨 **Modern design** - Clean light mode UI with Inter font
+- 📈 **Progress tracking** - Visual progress bars and status badges
+- 🎯 **Color-coded load** - Cognitive load indicators (green/yellow/red)
+
+### Command Line (For Batch Jobs)
 
 ```bash
 cd train
@@ -62,7 +122,7 @@ python analyze_training_logs.py --log-dir ./training_logs
 
 3. **Python packages**:
    ```bash
-   pip install numpy scipy python-dotenv
+   pip install numpy scipy python-dotenv flask
    ```
 
 ## Output
