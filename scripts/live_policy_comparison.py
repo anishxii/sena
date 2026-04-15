@@ -12,7 +12,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
-from emotiv_learn.eeg import EEGObservationContext, SyntheticEEGProvider, estimate_time_on_chunk
+from emotiv_learn.eeg import (
+    DEFAULT_USER_TO_STEW_SUBJECT,
+    EEGObservationContext,
+    build_eeg_provider,
+    estimate_time_on_chunk,
+)
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import (
     StudentPromptInput,
@@ -51,6 +56,11 @@ def run_live_policy_comparison(
     events_output_path: Path | None = None,
     policy_modes: list[str] | None = None,
     user_ids: list[str] | None = None,
+    eeg_mode: str = "matched_real",
+    stew_dir: str = "stew_dataset",
+    stew_index_path: str | None = None,
+    eeg_epoch_sec: int = 30,
+    eeg_stride_sec: int = 10,
 ) -> dict:
     client = OpenAIChatClient(model=model)
     selected_modes = policy_modes or POLICY_MODES
@@ -78,6 +88,11 @@ def run_live_policy_comparison(
             user_ids=selected_users,
             client=client,
             event_writer=event_writer,
+            eeg_mode=eeg_mode,
+            stew_dir=stew_dir,
+            stew_index_path=stew_index_path,
+            eeg_epoch_sec=eeg_epoch_sec,
+            eeg_stride_sec=eeg_stride_sec,
         )
         event_writer.write(
             "policy_mode_completed",
@@ -116,10 +131,23 @@ def run_policy_mode_live(
     user_ids: list[str],
     client: OpenAIChatClient,
     event_writer: JsonlEventWriter,
+    eeg_mode: str,
+    stew_dir: str,
+    stew_index_path: str | None,
+    eeg_epoch_sec: int,
+    eeg_stride_sec: int,
 ) -> dict:
     rng = random.Random(seed)
     state_builder = LiveLLMStateBuilder()
-    eeg_provider = SyntheticEEGProvider(seed=seed)
+    eeg_provider = build_eeg_provider(
+        eeg_mode=eeg_mode,
+        seed=seed,
+        stew_dir=stew_dir,
+        index_path=stew_index_path,
+        user_to_subject=DEFAULT_USER_TO_STEW_SUBJECT,
+        epoch_sec=eeg_epoch_sec,
+        stride_sec=eeg_stride_sec,
+    )
     students = {
         user_id: HiddenKnowledgeStudent(_initial_state_for_user(user_id), seed=seed + index * 101)
         for index, user_id in enumerate(user_ids)
@@ -582,6 +610,11 @@ def main() -> None:
     parser.add_argument("--model", default=None)
     parser.add_argument("--modes", default="personalized,generic,fixed_no_change,random")
     parser.add_argument("--users", default=",".join(USER_PROFILES))
+    parser.add_argument("--eeg-mode", default="matched_real", choices=["synthetic", "matched_real"])
+    parser.add_argument("--stew-dir", default="stew_dataset")
+    parser.add_argument("--stew-index-path", default=None)
+    parser.add_argument("--eeg-epoch-sec", type=int, default=30)
+    parser.add_argument("--eeg-stride-sec", type=int, default=10)
     parser.add_argument("--output", default="artifacts/live_policy_comparison.json")
     parser.add_argument("--events-output", default=None)
     args = parser.parse_args()
@@ -594,6 +627,11 @@ def main() -> None:
         events_output_path=Path(args.events_output) if args.events_output else None,
         policy_modes=_parse_csv(args.modes, set(POLICY_MODES)),
         user_ids=_parse_csv(args.users, set(USER_PROFILES)),
+        eeg_mode=args.eeg_mode,
+        stew_dir=args.stew_dir,
+        stew_index_path=args.stew_index_path,
+        eeg_epoch_sec=args.eeg_epoch_sec,
+        eeg_stride_sec=args.eeg_stride_sec,
     )
 
 

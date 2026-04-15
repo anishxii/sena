@@ -10,7 +10,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
-from emotiv_learn.eeg import EEGObservationContext, SyntheticEEGProvider, estimate_time_on_chunk
+from emotiv_learn.eeg import (
+    DEFAULT_USER_TO_STEW_SUBJECT,
+    EEGObservationContext,
+    build_eeg_provider,
+    estimate_time_on_chunk,
+)
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import compute_reward_from_interpreted
 from emotiv_learn.schemas import Outcome, RewardEvent, SemanticSignals, TaskResult
@@ -96,19 +101,44 @@ ACTION_TEMPLATES = {
 }
 
 
-def run_comparison(turns: int, seed: int) -> dict[str, list[dict]]:
+def run_comparison(
+    turns: int,
+    seed: int,
+    eeg_mode: str = "matched_real",
+    stew_dir: str = "stew_dataset",
+    stew_index_path: str | None = None,
+    eeg_epoch_sec: int = 30,
+    eeg_stride_sec: int = 10,
+) -> dict[str, list[dict]]:
     return {
-        "personalized": run_policy_mode(policy_mode="personalized", turns=turns, seed=seed),
-        "generic": run_policy_mode(policy_mode="generic", turns=turns, seed=seed),
-        "fixed_no_change": run_policy_mode(policy_mode="fixed_no_change", turns=turns, seed=seed),
-        "random": run_policy_mode(policy_mode="random", turns=turns, seed=seed),
+        "personalized": run_policy_mode(policy_mode="personalized", turns=turns, seed=seed, eeg_mode=eeg_mode, stew_dir=stew_dir, stew_index_path=stew_index_path, eeg_epoch_sec=eeg_epoch_sec, eeg_stride_sec=eeg_stride_sec),
+        "generic": run_policy_mode(policy_mode="generic", turns=turns, seed=seed, eeg_mode=eeg_mode, stew_dir=stew_dir, stew_index_path=stew_index_path, eeg_epoch_sec=eeg_epoch_sec, eeg_stride_sec=eeg_stride_sec),
+        "fixed_no_change": run_policy_mode(policy_mode="fixed_no_change", turns=turns, seed=seed, eeg_mode=eeg_mode, stew_dir=stew_dir, stew_index_path=stew_index_path, eeg_epoch_sec=eeg_epoch_sec, eeg_stride_sec=eeg_stride_sec),
+        "random": run_policy_mode(policy_mode="random", turns=turns, seed=seed, eeg_mode=eeg_mode, stew_dir=stew_dir, stew_index_path=stew_index_path, eeg_epoch_sec=eeg_epoch_sec, eeg_stride_sec=eeg_stride_sec),
     }
 
 
-def run_policy_mode(policy_mode: str, turns: int, seed: int) -> list[dict]:
+def run_policy_mode(
+    policy_mode: str,
+    turns: int,
+    seed: int,
+    eeg_mode: str = "matched_real",
+    stew_dir: str = "stew_dataset",
+    stew_index_path: str | None = None,
+    eeg_epoch_sec: int = 30,
+    eeg_stride_sec: int = 10,
+) -> list[dict]:
     rng = random.Random(seed)
     state_builder = LiveLLMStateBuilder()
-    eeg_provider = SyntheticEEGProvider(seed=seed)
+    eeg_provider = build_eeg_provider(
+        eeg_mode=eeg_mode,
+        seed=seed,
+        stew_dir=stew_dir,
+        index_path=stew_index_path,
+        user_to_subject=DEFAULT_USER_TO_STEW_SUBJECT,
+        epoch_sec=eeg_epoch_sec,
+        stride_sec=eeg_stride_sec,
+    )
     students = {
         user_id: HiddenKnowledgeStudent(_initial_state_for_user(user_id), seed=seed + index * 101)
         for index, user_id in enumerate(USER_PROFILES)
@@ -358,8 +388,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Compare policy modes on the hidden-knowledge student simulator.")
     parser.add_argument("--turns", type=int, default=30)
     parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--eeg-mode", default="matched_real", choices=["synthetic", "matched_real"])
+    parser.add_argument("--stew-dir", default="stew_dataset")
+    parser.add_argument("--stew-index-path", default=None)
+    parser.add_argument("--eeg-epoch-sec", type=int, default=30)
+    parser.add_argument("--eeg-stride-sec", type=int, default=10)
     args = parser.parse_args()
-    print_results(run_comparison(turns=args.turns, seed=args.seed))
+    print_results(
+        run_comparison(
+            turns=args.turns,
+            seed=args.seed,
+            eeg_mode=args.eeg_mode,
+            stew_dir=args.stew_dir,
+            stew_index_path=args.stew_index_path,
+            eeg_epoch_sec=args.eeg_epoch_sec,
+            eeg_stride_sec=args.eeg_stride_sec,
+        )
+    )
 
 
 if __name__ == "__main__":
