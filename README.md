@@ -22,6 +22,29 @@ Run a stubbed end-to-end loop across System 1 and lightweight System 2 placehold
 python3 scripts/integration_driver.py
 ```
 
+## End-to-End Smoke Flow
+
+To run the full smoke-style flow across stub System 3, System 2, and the real System 1 engine:
+
+```bash
+python3 scripts/end_to_end_demo.py
+python3 scripts/log_viewer.py
+```
+
+This writes:
+
+- `artifacts/turn_logs.json`: canonical per-turn logs
+- `artifacts/turn_log_viewer.html`: a lightweight viewer for inspecting the full handoff
+
+The viewer shows, for each turn:
+
+- System 3 raw observation
+- System 2 state
+- System 1 action scores and selected action
+- System 2 interaction effect
+- System 3 outcome
+- System 2 reward event returned to System 1
+
 The driver demonstrates this contract flow:
 
 1. A raw observation is converted into a fixed-length `State` by a stub `DemoStateBuilder`

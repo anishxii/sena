@@ -104,6 +104,26 @@ class UpdateTrace:
     user_score: float
 
 
+@dataclass(frozen=True)
+class InteractionEffect:
+    timestamp: int
+    user_id: str
+    action_id: str
+    semantic_effect: dict[str, float]
+    rendering_info: dict[str, str | None]
+
+
+@dataclass(frozen=True)
+class TurnLog:
+    raw_observation: dict[str, Any]
+    state: State
+    action_scores: ActionScores
+    action: Action
+    interaction_effect: InteractionEffect
+    outcome: Outcome
+    reward_event: RewardEvent
+
+
 CANONICAL_ACTION_IDS = [
     "no_change",
     "simplify",
