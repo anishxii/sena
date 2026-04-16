@@ -10,7 +10,6 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
-from emotiv_learn.cog_bci_proxy_model import load_cog_bci_proxy_regressor
 from emotiv_learn.eeg import EEGObservationContext, build_eeg_provider
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import (
@@ -71,9 +70,6 @@ def run_live_training_loop(
     db_path: str | None,
     output_path: Path,
     eeg_mode: str,
-    stew_dir: str,
-    eeg_mapper_path: str | None,
-    cog_proxy_model_path: str | None,
 ) -> list[dict]:
     client = OpenAIChatClient(model=model)
     engine = DecisionEngine(
@@ -89,10 +85,7 @@ def run_live_training_loop(
     eeg_provider = build_eeg_provider(
         eeg_mode=eeg_mode,
         seed=17,
-        stew_dir=stew_dir,
-        mapper_path=eeg_mapper_path,
     )
-    proxy_model = load_cog_bci_proxy_regressor(cog_proxy_model_path) if cog_proxy_model_path else None
 
     previous_interpreted = None
     previous_student_response = None
@@ -158,7 +151,7 @@ def run_live_training_loop(
                 observable_signals=transition.observable_signals,
             )
         )
-        eeg_proxy = proxy_model.predict(eeg_window.features) if proxy_model is not None else None
+        eeg_proxy = dict(eeg_window.metadata.get("proxy_state", {}))
 
         student_messages = build_student_messages(
             StudentPromptInput(
@@ -345,10 +338,7 @@ def main() -> None:
     parser.add_argument("--model", default=None)
     parser.add_argument("--db-path", default="artifacts/live_llm_engine.sqlite")
     parser.add_argument("--output", default="artifacts/live_llm_turns.json")
-    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic", "retrieved_real"])
-    parser.add_argument("--stew-dir", default="stew_dataset")
-    parser.add_argument("--eeg-mapper-path", default="artifacts/stew_workload_mapper.json")
-    parser.add_argument("--cog-proxy-model-path", default=None)
+    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic"])
     args = parser.parse_args()
 
     run_live_training_loop(
@@ -360,9 +350,6 @@ def main() -> None:
         db_path=args.db_path,
         output_path=Path(args.output),
         eeg_mode=args.eeg_mode,
-        stew_dir=args.stew_dir,
-        eeg_mapper_path=args.eeg_mapper_path,
-        cog_proxy_model_path=args.cog_proxy_model_path,
     )
 
 

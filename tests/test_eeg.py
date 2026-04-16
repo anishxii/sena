@@ -1,11 +1,4 @@
-from emotiv_learn.eeg import (
-    EEGObservationContext,
-    EEG_SUMMARY_FEATURE_NAMES,
-    HeuristicTargetEEGMapper,
-    SyntheticEEGProvider,
-    build_eeg_provider,
-    estimate_time_on_chunk,
-)
+from emotiv_learn.eeg import EEGObservationContext, EEG_SUMMARY_FEATURE_NAMES, HeuristicTargetEEGMapper, SyntheticEEGProvider, build_eeg_provider, estimate_time_on_chunk
 def test_time_on_chunk_increases_with_length_and_complexity() -> None:
     short_simple = "Gradient points uphill."
     long_dense = (
@@ -92,43 +85,6 @@ def test_heuristic_target_mapper_emits_proxy_and_feature_targets() -> None:
 
     assert 0.0 <= context.workload <= 1.0
     assert len(features) == len(EEG_SUMMARY_FEATURE_NAMES)
-
-
-def test_retrieved_real_provider_uses_stew_index(tmp_path) -> None:
-    stew_dir = tmp_path / "stew"
-    stew_dir.mkdir()
-    ratings = stew_dir / "ratings.txt"
-    ratings.write_text("1, 2, 8\n", encoding="utf-8")
-
-    import numpy as np
-
-    samples = np.tile(np.linspace(0.0, 1.0, 3840, dtype=np.float32).reshape(-1, 1), (1, 14))
-    np.savetxt(stew_dir / "sub01_hi.txt", samples)
-    np.savetxt(stew_dir / "sub01_lo.txt", samples)
-
-    provider = build_eeg_provider(
-        eeg_mode="retrieved_real",
-        seed=3,
-        stew_dir=str(stew_dir),
-        epoch_sec=10,
-        stride_sec=10,
-    )
-    eeg_window = provider.observe(
-        EEGObservationContext(
-            timestamp=1,
-            user_id="sub01",
-            concept_id="gradient",
-            action_id="worked_example",
-            tutor_message="Use a clear worked example.",
-            time_on_chunk=45.0,
-            hidden_state={
-                "knowledge_state": {"concept_mastery": {"gradient": 0.4}, "confidence": 0.5},
-                "neuro_state": {"workload": 0.36, "fatigue": 0.2, "attention": 0.7, "vigilance": 0.68, "stress": 0.24},
-            },
-            observable_signals={"confusion_score": 0.4, "engagement_score": 0.7},
-        )
-    )
-
-    assert eeg_window.metadata["source"] == "retrieved_real"
-    assert len(eeg_window.features) == len(EEG_SUMMARY_FEATURE_NAMES)
-    assert eeg_window.channels is not None
+def test_build_eeg_provider_supports_synthetic_mode_only() -> None:
+    provider = build_eeg_provider(eeg_mode="synthetic", seed=3)
+    assert isinstance(provider, SyntheticEEGProvider)

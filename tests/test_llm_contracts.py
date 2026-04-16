@@ -52,7 +52,7 @@ def test_prompt_builders_include_schema_and_action_instruction() -> None:
     )
     assert '"response_type": "continue | clarify | branch"' in student_messages[1]["content"]
     assert "Checkpoint expected:\nTrue" in student_messages[1]["content"]
-    assert "prioritize answering the checkpoint question" in student_messages[1]["content"]
+    assert "If checkpoint_expected is true" in student_messages[1]["content"]
     assert "choose continue if mastery >= 0.70" in student_messages[1]["content"]
 
     interpreter_messages = build_interpreter_messages(

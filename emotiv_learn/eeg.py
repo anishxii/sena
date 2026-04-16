@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 import random
 from typing import Any, Protocol
 
 from .eeg_features import EEG_FEATURE_NAMES
-from .eeg_retrieval import NearestNeighborEEGRetriever
-from .stew_index import STEWFeatureIndex, STEWSubjectLoader, build_stew_feature_index, load_feature_index
 
 
 def _clip01(value: float) -> float:
@@ -166,69 +163,6 @@ class SyntheticEEGProvider:
         )
 
 
-class RetrievedEEGProvider:
-    """Retrieve the nearest real STEW window for the target EEG state."""
-
-    def __init__(
-        self,
-        feature_index: STEWFeatureIndex,
-        stew_dir: str | Path,
-        mapper: TargetEEGMapper | None = None,
-        user_to_subject: dict[str, str] | None = None,
-        seed: int = 0,
-        epoch_sec: int = 30,
-        stride_sec: int = 10,
-    ) -> None:
-        self.feature_index = feature_index
-        self.subject_loader = STEWSubjectLoader(stew_dir, epoch_sec=epoch_sec, stride_sec=stride_sec)
-        self.mapper = mapper or HeuristicTargetEEGMapper()
-        self.retriever = NearestNeighborEEGRetriever(feature_index=feature_index, seed=seed)
-        self.user_to_subject = user_to_subject or {}
-
-    def observe(self, context: EEGObservationContext) -> EEGWindow:
-        time_on_chunk = context.time_on_chunk
-        if time_on_chunk is None:
-            time_on_chunk = estimate_time_on_chunk(context.tutor_message)
-        target_context = TargetEEGContext(
-            user_id=context.user_id,
-            concept_id=context.concept_id,
-            action_id=context.action_id,
-            tutor_message=context.tutor_message,
-            time_on_chunk=time_on_chunk,
-            hidden_state=context.hidden_state or {},
-            observable_signals=context.observable_signals or {},
-        )
-        subject_id = self.user_to_subject.get(context.user_id) or self._default_subject_id()
-        proxy_state = self.mapper.predict_proxy_state(target_context)
-        target_features = self.mapper.predict_features(target_context)
-        match = self.retriever.sample_match(subject_id=subject_id, target_features=target_features, k=5)
-        raw_window = self.subject_loader.load_epoch(match.window.subject_id, match.window.condition, match.window.epoch_index)
-
-        return EEGWindow(
-            timestamp=float(context.timestamp),
-            user_id=context.user_id,
-            channels=raw_window.tolist(),
-            fs=128,
-            features=[round(float(value), 4) for value in match.window.features],
-            feature_names=EEG_SUMMARY_FEATURE_NAMES,
-            metadata={
-                "source": "retrieved_real",
-                "subject_id": match.window.subject_id,
-                "condition": match.window.condition,
-                "window_id": match.window.window_id,
-                "distance": round(match.distance, 6),
-                "proxy_state": proxy_state.__dict__,
-                "target_features": [round(float(value), 4) for value in target_features],
-                "matched_features": [round(float(value), 4) for value in match.window.features],
-            },
-        )
-
-    def _default_subject_id(self) -> str:
-        if not self.feature_index.windows_by_subject:
-            raise ValueError("feature index has no subjects")
-        return sorted(self.feature_index.windows_by_subject)[0]
-
-
 class HeuristicTargetEEGMapper:
     """Default mapper from learner state into proxy state and EEG summary targets.
 
@@ -296,36 +230,7 @@ def build_eeg_provider(
     *,
     eeg_mode: str,
     seed: int,
-    stew_dir: str | None = None,
-    index_path: str | None = None,
-    mapper_path: str | None = None,
-    epoch_sec: int = 30,
-    stride_sec: int = 10,
-    user_to_subject: dict[str, str] | None = None,
 ) -> EEGProvider:
-    mapper = None
-    if mapper_path:
-        from .eeg_mapper import load_stew_workload_feature_mapper
-
-        mapper = load_stew_workload_feature_mapper(mapper_path)
-    if eeg_mode == "synthetic":
-        return SyntheticEEGProvider(seed=seed, mapper=mapper)
-    if eeg_mode != "retrieved_real":
-        raise ValueError(f"unknown eeg_mode: {eeg_mode}")
-    if stew_dir is None:
-        raise ValueError("stew_dir is required for retrieved_real mode")
-    feature_index = load_feature_index(index_path) if index_path else build_stew_feature_index(
-        stew_dir=stew_dir,
-        feature_names=EEG_SUMMARY_FEATURE_NAMES,
-        epoch_sec=epoch_sec,
-        stride_sec=stride_sec,
-    )
-    return RetrievedEEGProvider(
-        feature_index=feature_index,
-        stew_dir=stew_dir,
-        mapper=mapper,
-        user_to_subject=user_to_subject,
-        seed=seed,
-        epoch_sec=epoch_sec,
-        stride_sec=stride_sec,
-    )
+    if eeg_mode != "synthetic":
+        raise ValueError("the current simulator supports only eeg_mode='synthetic'")
+    return SyntheticEEGProvider(seed=seed, mapper=HeuristicTargetEEGMapper())

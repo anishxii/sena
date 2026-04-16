@@ -12,7 +12,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
-from emotiv_learn.cog_bci_proxy_model import load_cog_bci_proxy_regressor
 from emotiv_learn.eeg import EEGObservationContext, build_eeg_provider
 from emotiv_learn.live_training import (
     LIVE_FEATURE_NAMES,
@@ -97,9 +96,6 @@ def run_live_policy_comparison(
     policy_modes: list[str] | None = None,
     user_ids: list[str] | None = None,
     eeg_mode: str = "synthetic",
-    stew_dir: str = "stew_dataset",
-    eeg_mapper_path: str | None = "artifacts/stew_workload_mapper.json",
-    cog_proxy_model_path: str | None = None,
     state_profile: str = STATE_PROFILE_CURRENT_EEG,
 ) -> dict:
     client = OpenAIChatClient(model=model)
@@ -129,9 +125,6 @@ def run_live_policy_comparison(
             client=client,
             event_writer=event_writer,
             eeg_mode=eeg_mode,
-            stew_dir=stew_dir,
-            eeg_mapper_path=eeg_mapper_path,
-            cog_proxy_model_path=cog_proxy_model_path,
             state_profile=state_profile,
         )
         event_writer.write(
@@ -173,9 +166,6 @@ def run_policy_mode_live(
     client: OpenAIChatClient,
     event_writer: JsonlEventWriter,
     eeg_mode: str,
-    stew_dir: str,
-    eeg_mapper_path: str | None,
-    cog_proxy_model_path: str | None,
     state_profile: str,
 ) -> dict:
     rng = random.Random(seed)
@@ -183,10 +173,7 @@ def run_policy_mode_live(
     eeg_provider = build_eeg_provider(
         eeg_mode=eeg_mode,
         seed=seed + 1000,
-        stew_dir=stew_dir,
-        mapper_path=eeg_mapper_path,
     )
-    proxy_model = load_cog_bci_proxy_regressor(cog_proxy_model_path) if cog_proxy_model_path else None
     students = {
         user_id: HiddenKnowledgeStudent(_initial_state_for_user(user_id), seed=seed + index * 101)
         for index, user_id in enumerate(user_ids)
@@ -274,7 +261,7 @@ def run_policy_mode_live(
                     observable_signals=transition.observable_signals,
                 )
             )
-            eeg_proxy = proxy_model.predict(eeg_window.features) if proxy_model is not None else None
+            eeg_proxy = dict(eeg_window.metadata.get("proxy_state", {}))
             event_writer.write(
                 "student_transition",
                 {
@@ -784,10 +771,7 @@ def main() -> None:
     parser.add_argument("--users", default=",".join(USER_PROFILES))
     parser.add_argument("--output", default="artifacts/live_policy_comparison.json")
     parser.add_argument("--events-output", default=None)
-    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic", "retrieved_real"])
-    parser.add_argument("--stew-dir", default="stew_dataset")
-    parser.add_argument("--eeg-mapper-path", default="artifacts/stew_workload_mapper.json")
-    parser.add_argument("--cog-proxy-model-path", default=None)
+    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic"])
     parser.add_argument("--state-profile", default=STATE_PROFILE_CURRENT_EEG, choices=STATE_PROFILES)
     args = parser.parse_args()
 
@@ -800,9 +784,6 @@ def main() -> None:
         policy_modes=_parse_csv(args.modes, set(POLICY_MODES)),
         user_ids=_parse_csv(args.users, set(USER_PROFILES)),
         eeg_mode=args.eeg_mode,
-        stew_dir=args.stew_dir,
-        eeg_mapper_path=args.eeg_mapper_path,
-        cog_proxy_model_path=args.cog_proxy_model_path,
         state_profile=args.state_profile,
     )
 

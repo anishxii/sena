@@ -28,10 +28,7 @@ def main() -> None:
     parser.add_argument("--model", default=None)
     parser.add_argument("--modes", default="personalized,generic,fixed_no_change")
     parser.add_argument("--users", default=None)
-    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic", "retrieved_real"])
-    parser.add_argument("--stew-dir", default="stew_dataset")
-    parser.add_argument("--eeg-mapper-path", default="artifacts/stew_workload_mapper.json")
-    parser.add_argument("--cog-proxy-model-path", default=None)
+    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic"])
     parser.add_argument("--output-dir", default="artifacts/state_ablation")
     args = parser.parse_args()
 
@@ -50,9 +47,6 @@ def main() -> None:
             policy_modes=args.modes.split(",") if args.modes else None,
             user_ids=args.users.split(",") if args.users else None,
             eeg_mode=args.eeg_mode,
-            stew_dir=args.stew_dir,
-            eeg_mapper_path=args.eeg_mapper_path,
-            cog_proxy_model_path=args.cog_proxy_model_path,
             state_profile=profile,
         )
         print(f"completed state profile {profile} -> {output_path}")
