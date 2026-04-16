@@ -178,7 +178,7 @@ def _run_episode(
             action_id=action_id,
             checkpoint_expected=checkpoint_expected,
         )
-        interpreted = _observable_interpreted(turn, previous_student_response)
+        interpreted = _observable_interpreted(turn, previous_student_response, checkpoint_expected=checkpoint_expected)
         reward = compute_observable_learning_reward(interpreted)
 
         if policy_name == "personalized" and state is not None:
@@ -224,7 +224,7 @@ def _run_episode(
         }
         previous_reward = reward
         learner_message = turn.reprompt or "Please continue."
-        agent.advance_if_ready(concept_id)
+        agent.advance_if_ready(concept_id, checkpoint_correct=turn.checkpoint_correct)
 
     final_evaluation = evaluate_knowledge_state(scenario, agent.state)
     return {
@@ -262,7 +262,12 @@ Teach this concept in a standard way. Do not use any private learner-state estim
     )
 
 
-def _observable_interpreted(turn: KnowledgeTurn, previous_student_response: dict | None) -> dict:
+def _observable_interpreted(
+    turn: KnowledgeTurn,
+    previous_student_response: dict | None,
+    *,
+    checkpoint_expected: bool,
+) -> dict:
     confidence = float(turn.self_reported_confidence)
     previous_confidence = 0.5 if previous_student_response is None else float(previous_student_response.get("self_reported_confidence", 0.5))
     confidence_delta = max(0.0, min(1.0, (confidence - previous_confidence + 0.5)))
@@ -279,6 +284,8 @@ def _observable_interpreted(turn: KnowledgeTurn, previous_student_response: dict
     }[response_type]
     return {
         "followup_type": response_type,
+        "checkpoint_expected": checkpoint_expected,
+        "checkpoint_attempted": turn.checkpoint_correct is not None,
         "checkpoint_correct": turn.checkpoint_correct,
         "checkpoint_score": 1.0 if turn.checkpoint_correct is True else 0.0 if turn.checkpoint_correct is False else None,
         "confusion_score": round(confusion_score, 4),

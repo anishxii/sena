@@ -140,9 +140,10 @@ class KnowledgeAgent:
         )
         response_type = self._response_type(after, concept_id)
         reprompt = self._reprompt(after, concept_id, response_type, content_context)
-        checkpoint_answer = self._checkpoint_answer(after, concept_id, content_context) if checkpoint_expected else None
+        checkpoint_answer = None
         checkpoint_correct = None
-        if checkpoint_expected:
+        if checkpoint_expected and response_type == "continue":
+            checkpoint_answer = self._checkpoint_answer(after, concept_id, content_context)
             # BKT-style observation model: high mastery usually produces a
             # correct checkpoint, with small guess/slip probabilities.
             guess = 0.10
@@ -173,11 +174,17 @@ class KnowledgeAgent:
         self.state = after
         return turn
 
-    def advance_if_ready(self, concept_id: str) -> None:
+    def advance_if_ready(self, concept_id: str, checkpoint_correct: bool | None = None) -> None:
         mastery = self.state.concept_mastery.get(concept_id, 0.0)
-        should_advance = mastery >= ADVANCE_MASTERY_THRESHOLD or (
-            self.state.current_concept_steps >= MAX_STEPS_PER_CONCEPT
-            and mastery >= MIN_FORCED_ADVANCE_MASTERY
+        should_advance = (
+            checkpoint_correct is True
+            and (
+                mastery >= ADVANCE_MASTERY_THRESHOLD
+                or (
+                    self.state.current_concept_steps >= MAX_STEPS_PER_CONCEPT
+                    and mastery >= MIN_FORCED_ADVANCE_MASTERY
+                )
+            )
         )
         if not should_advance:
             return

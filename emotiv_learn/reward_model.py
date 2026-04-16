@@ -39,18 +39,35 @@ def compute_observable_learning_reward(interpreted: dict[str, Any]) -> float:
     confusion remains negative.
     """
 
+    checkpoint_expected = bool(interpreted.get("checkpoint_expected", False))
+    checkpoint_attempted = interpreted["checkpoint_correct"] is not None
+    followup_type = interpreted["followup_type"]
+    progress_signal = interpreted["progress_signal"]
+    comprehension_score = interpreted["comprehension_score"]
+    branch_bonus = 0.18
+
+    # If a checkpoint was offered and the learner does not continue/answer,
+    # treat the turn as repair/curiosity rather than forward progress.
+    if checkpoint_expected and not checkpoint_attempted:
+        progress_signal *= 0.20
+        comprehension_score *= 0.75
+        branch_bonus = 0.06
+
     reward = 0.0
     if interpreted["checkpoint_correct"] is True:
         reward += 1.0
     elif interpreted["checkpoint_correct"] is False:
         reward -= 0.9
 
-    reward += 0.55 * interpreted["comprehension_score"]
-    reward += 0.35 * interpreted["progress_signal"]
+    if checkpoint_expected and followup_type == "continue" and not checkpoint_attempted:
+        reward -= 0.6
+
+    reward += 0.55 * comprehension_score
+    reward += 0.35 * progress_signal
     reward += 0.20 * interpreted["engagement_score"]
-    reward += 0.18 * int(interpreted["followup_type"] == "branch")
-    reward += 0.12 * int(interpreted["followup_type"] == "continue")
-    reward -= 0.08 * int(interpreted["followup_type"] == "clarify")
+    reward += branch_bonus * int(followup_type == "branch")
+    reward += 0.12 * int(followup_type == "continue")
+    reward -= 0.08 * int(followup_type == "clarify")
     reward -= 0.45 * interpreted["confusion_score"]
     reward -= 0.18 * interpreted["pace_slow_score"]
     reward -= 0.10 * interpreted["pace_fast_score"]

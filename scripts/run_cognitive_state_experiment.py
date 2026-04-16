@@ -101,7 +101,7 @@ def main() -> None:
         }
         turn_logs.append(turn_log)
         learner_message = turn.reprompt or "Please continue."
-        agent.advance_if_ready(concept_id)
+        agent.advance_if_ready(concept_id, checkpoint_correct=turn.checkpoint_correct)
 
     output = {
         "turns": args.turns,
