@@ -140,7 +140,17 @@ class MatchedRealEEGProvider:
         stride_sec: int = 10,
     ) -> None:
         self.feature_index = feature_index
-        self.subject_loader = STEWSubjectLoader(stew_dir, epoch_sec=epoch_sec, stride_sec=stride_sec)
+        resolved_epoch_sec, resolved_stride_sec = _resolve_windowing(
+            feature_index=feature_index,
+            stew_dir=stew_dir,
+            epoch_sec=epoch_sec,
+            stride_sec=stride_sec,
+        )
+        self.subject_loader = STEWSubjectLoader(
+            stew_dir,
+            epoch_sec=resolved_epoch_sec,
+            stride_sec=resolved_stride_sec,
+        )
         self.user_to_subject = dict(DEFAULT_USER_TO_STEW_SUBJECT)
         if user_to_subject:
             self.user_to_subject.update(user_to_subject)
@@ -249,3 +259,61 @@ def _match_metadata(
         "action_id": action_id,
         "time_on_chunk": time_on_chunk,
     }
+
+
+def _resolve_windowing(
+    *,
+    feature_index: STEWFeatureIndex,
+    stew_dir: str | Path,
+    epoch_sec: int,
+    stride_sec: int,
+) -> tuple[int, int]:
+    if feature_index.epoch_sec is not None and feature_index.stride_sec is not None:
+        return int(feature_index.epoch_sec), int(feature_index.stride_sec)
+
+    inferred = _infer_windowing_from_index(feature_index=feature_index, stew_dir=stew_dir)
+    if inferred is not None:
+        return inferred
+    return epoch_sec, stride_sec
+
+
+def _infer_windowing_from_index(
+    *,
+    feature_index: STEWFeatureIndex,
+    stew_dir: str | Path,
+) -> tuple[int, int] | None:
+    if not feature_index.windows_by_subject:
+        return None
+
+    subject_id, windows = next(iter(feature_index.windows_by_subject.items()))
+    if not windows:
+        return None
+
+    if len(windows) >= 2:
+        stride_sec = int(round(windows[1].start_offset_s - windows[0].start_offset_s))
+    else:
+        return None
+    if stride_sec <= 0:
+        return None
+
+    path = Path(stew_dir) / f"{subject_id}_hi.txt"
+    if not path.exists():
+        return None
+
+    delimiter = _detect_delimiter(path)
+    with path.open("r", encoding="utf-8") as handle:
+        sample_count = sum(1 for _ in handle if _.strip())
+    total_duration_sec = sample_count / 128.0
+    epoch_sec = int(round(total_duration_sec - stride_sec * (len(windows) - 1)))
+    if epoch_sec <= 0:
+        return None
+    return epoch_sec, stride_sec
+
+
+def _detect_delimiter(path: Path) -> str | None:
+    first_line = path.read_text(encoding="utf-8").splitlines()[0]
+    if "\t" in first_line:
+        return "\t"
+    if "," in first_line:
+        return ","
+    return None

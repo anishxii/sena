@@ -26,6 +26,8 @@ class STEWFeatureIndex:
     feature_mean: list[float]
     feature_std: list[float]
     windows_by_subject: dict[str, list[IndexedEEGWindow]]
+    epoch_sec: int | None = None
+    stride_sec: int | None = None
 
 
 class STEWSubjectLoader:
@@ -115,6 +117,8 @@ def build_stew_feature_index(
         feature_mean=[float(value) for value in feature_mean.tolist()],
         feature_std=[float(value) for value in feature_std.tolist()],
         windows_by_subject=windows_by_subject,
+        epoch_sec=epoch_sec,
+        stride_sec=loader.stride_sec,
     )
 
 
@@ -125,6 +129,8 @@ def save_feature_index(index: STEWFeatureIndex, output_path: str | Path) -> None
         "feature_names": index.feature_names,
         "feature_mean": index.feature_mean,
         "feature_std": index.feature_std,
+        "epoch_sec": index.epoch_sec,
+        "stride_sec": index.stride_sec,
         "windows_by_subject": {
             subject_id: [asdict(window) for window in windows]
             for subject_id, windows in index.windows_by_subject.items()
@@ -143,6 +149,8 @@ def load_feature_index(index_path: str | Path) -> STEWFeatureIndex:
             subject_id: [IndexedEEGWindow(**window) for window in windows]
             for subject_id, windows in payload["windows_by_subject"].items()
         },
+        epoch_sec=payload.get("epoch_sec"),
+        stride_sec=payload.get("stride_sec"),
     )
 
 
