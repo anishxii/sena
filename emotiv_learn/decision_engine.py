@@ -28,6 +28,7 @@ class DecisionEngine:
         alpha_generic: float = 0.05,
         alpha_user: float = 0.10,
         use_personalization: bool = True,
+        action_bank: list[Action] | None = None,
         seed: int | None = None,
         db_path: str | None = None,
         reward_clip_abs: float | None = 1.5,
@@ -54,7 +55,8 @@ class DecisionEngine:
         self.reward_clip_abs = reward_clip_abs
         self.l2_weight_decay = l2_weight_decay
         self.update_clip_abs = update_clip_abs
-        self.action_ids = [action.action_id for action in ACTION_BANK]
+        self.action_bank = action_bank or ACTION_BANK
+        self.action_ids = [action.action_id for action in self.action_bank]
         self.rng = random.Random(seed)
         self.db_path = db_path
 
