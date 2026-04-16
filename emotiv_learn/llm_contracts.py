@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from .reward_model import compute_observable_learning_reward, compute_reward_from_interpreted
+
 
 ACTION_INSTRUCTIONS = {
     "no_change": "Continue in the same style and difficulty. Do not add unnecessary intervention.",
@@ -281,25 +283,6 @@ def normalize_interpreter_output(value: dict[str, Any]) -> dict[str, Any]:
             "curiosity_phrases": list(evidence.get("curiosity_phrases", [])),
         },
     }
-
-
-def compute_reward_from_interpreted(interpreted: dict[str, Any]) -> float:
-    reward = 0.0
-    if interpreted["checkpoint_correct"] is True:
-        reward += 1.0
-    elif interpreted["checkpoint_correct"] is False:
-        reward -= 0.8
-
-    reward += 0.6 * interpreted["progress_signal"]
-    reward += 0.4 * interpreted["comprehension_score"]
-    reward += 0.2 * interpreted["engagement_score"]
-    reward += 0.3 * int(interpreted["followup_type"] == "branch")
-    reward += 0.1 * int(interpreted["followup_type"] == "continue")
-    reward -= 0.25 * int(interpreted["followup_type"] == "clarify")
-    reward -= 0.6 * interpreted["confusion_score"]
-    reward -= 0.3 * interpreted["pace_slow_score"]
-    reward -= 0.2 * interpreted["pace_fast_score"]
-    return max(-1.5, min(1.5, reward))
 
 
 def _clip01(value: float) -> float:
