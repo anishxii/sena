@@ -10,6 +10,8 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
+from emotiv_learn.cog_bci_proxy_model import load_cog_bci_proxy_regressor
+from emotiv_learn.eeg import EEGObservationContext, build_eeg_provider
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import (
     StudentPromptInput,
@@ -68,6 +70,10 @@ def run_live_training_loop(
     model: str | None,
     db_path: str | None,
     output_path: Path,
+    eeg_mode: str,
+    stew_dir: str,
+    eeg_mapper_path: str | None,
+    cog_proxy_model_path: str | None,
 ) -> list[dict]:
     client = OpenAIChatClient(model=model)
     engine = DecisionEngine(
@@ -80,10 +86,19 @@ def run_live_training_loop(
         l2_weight_decay=0.001,
     )
     state_builder = LiveLLMStateBuilder()
+    eeg_provider = build_eeg_provider(
+        eeg_mode=eeg_mode,
+        seed=17,
+        stew_dir=stew_dir,
+        mapper_path=eeg_mapper_path,
+    )
+    proxy_model = load_cog_bci_proxy_regressor(cog_proxy_model_path) if cog_proxy_model_path else None
 
     previous_interpreted = None
     previous_student_response = None
     previous_reward = 0.0
+    previous_eeg_features = None
+    previous_eeg_proxy = None
     student = HiddenKnowledgeStudent(default_hidden_knowledge_state(), seed=13)
     conversation_summary = "The learner is beginning a short lesson."
     logs: list[dict] = []
@@ -102,6 +117,8 @@ def run_live_training_loop(
                 interpreted=previous_interpreted,
                 student_response=previous_student_response,
                 previous_reward=previous_reward,
+                eeg_features=previous_eeg_features,
+                eeg_proxy_estimates=previous_eeg_proxy,
             )
         )
         action_scores = engine.score_actions(state, ACTION_BANK)
@@ -129,6 +146,19 @@ def run_live_training_loop(
             checkpoint_expected=bool(content_step["checkpoint"]),
         )
         interpreted = _transition_to_interpreted(transition)
+        eeg_window = eeg_provider.observe(
+            EEGObservationContext(
+                timestamp=turn_index,
+                user_id=user_id,
+                concept_id=content_step["concept_id"],
+                action_id=action.action_id,
+                tutor_message=tutor_message,
+                time_on_chunk=None,
+                hidden_state=transition.to_dict()["hidden_state_after"],
+                observable_signals=transition.observable_signals,
+            )
+        )
+        eeg_proxy = proxy_model.predict(eeg_window.features) if proxy_model is not None else None
 
         student_messages = build_student_messages(
             StudentPromptInput(
@@ -182,6 +212,8 @@ def run_live_training_loop(
                 "student_response": student_response,
                 "interpreted": interpreted,
                 "reward": reward,
+                "eeg_window": asdict(eeg_window),
+                "eeg_proxy_estimate": eeg_proxy,
                 "student_transition": transition.to_dict(),
                 "update_trace": asdict(engine.update_history[-1]),
             }
@@ -190,6 +222,8 @@ def run_live_training_loop(
         previous_interpreted = interpreted
         previous_student_response = student_response
         previous_reward = reward
+        previous_eeg_features = eeg_window.features
+        previous_eeg_proxy = eeg_proxy
         conversation_summary = (
             f"Previous concept {content_step['concept_id']} used action {action.action_id}. "
             f"Student responded as {interpreted['followup_type']} with reward {reward:.2f}."
@@ -311,6 +345,10 @@ def main() -> None:
     parser.add_argument("--model", default=None)
     parser.add_argument("--db-path", default="artifacts/live_llm_engine.sqlite")
     parser.add_argument("--output", default="artifacts/live_llm_turns.json")
+    parser.add_argument("--eeg-mode", default="synthetic", choices=["synthetic", "retrieved_real"])
+    parser.add_argument("--stew-dir", default="stew_dataset")
+    parser.add_argument("--eeg-mapper-path", default="artifacts/stew_workload_mapper.json")
+    parser.add_argument("--cog-proxy-model-path", default=None)
     args = parser.parse_args()
 
     run_live_training_loop(
@@ -321,6 +359,10 @@ def main() -> None:
         model=args.model,
         db_path=args.db_path,
         output_path=Path(args.output),
+        eeg_mode=args.eeg_mode,
+        stew_dir=args.stew_dir,
+        eeg_mapper_path=args.eeg_mapper_path,
+        cog_proxy_model_path=args.cog_proxy_model_path,
     )
 
 

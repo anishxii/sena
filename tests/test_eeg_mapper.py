@@ -74,7 +74,10 @@ def test_build_provider_uses_learned_mapper(tmp_path) -> None:
             action_id="worked_example",
             tutor_message="Use a concrete worked example and then summarize the update rule.",
             time_on_chunk=55.0,
-            hidden_state={"concept_mastery": {"gradient": 0.25}, "fatigue": 0.15, "attention": 0.7, "confidence": 0.4},
+            hidden_state={
+                "knowledge_state": {"concept_mastery": {"gradient": 0.25}, "confidence": 0.4},
+                "neuro_state": {"workload": 0.41, "fatigue": 0.15, "attention": 0.7, "vigilance": 0.66, "stress": 0.22},
+            },
             observable_signals={"confusion_score": 0.65, "engagement_score": 0.75},
         )
     )

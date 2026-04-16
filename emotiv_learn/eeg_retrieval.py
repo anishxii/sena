@@ -25,7 +25,7 @@ class NearestNeighborEEGRetriever:
         seed: int = 0,
     ) -> None:
         self.feature_index = feature_index
-        self.feature_weights = feature_weights or [1.0, 1.0, 0.7, 0.5, 0.4, 0.4, 1.5, 1.6]
+        self.feature_weights = feature_weights or [1.0, 1.0, 0.7, 0.5, 0.4, 0.0, 1.5, 1.6]
         self.rng = random.Random(seed)
 
     def retrieve(self, subject_id: str, target_features: list[float], k: int = 5) -> list[EEGMatchResult]:

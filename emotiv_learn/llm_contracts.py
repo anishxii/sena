@@ -80,6 +80,8 @@ class TutorPromptInput:
     length_target: str
     difficulty_target: str
     include_checkpoint: bool
+    checkpoint_prompt: str | None = None
+    checkpoint_options: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,9 @@ class StudentPromptInput:
     checkpoint_expected: bool = False
     sampled_response_type: str | None = None
     checkpoint_answer: str | None = None
+    checkpoint_prompt: str | None = None
+    checkpoint_options: list[str] | None = None
+    checkpoint_choice: str | None = None
 
 
 @dataclass(frozen=True)
@@ -131,6 +136,13 @@ Content requirements:
 - difficulty target: {prompt_input.difficulty_target}
 - include checkpoint: {prompt_input.include_checkpoint}
 - if checkpoint is true, end with one short comprehension question
+- if checkpoint_prompt is provided, use that checkpoint exactly and include the listed answer options exactly as written
+
+Checkpoint prompt override:
+{prompt_input.checkpoint_prompt}
+
+Checkpoint options:
+{json.dumps(prompt_input.checkpoint_options, indent=2)}
 
 Generate the next tutor message."""
     return [
@@ -158,11 +170,21 @@ Sampled response mode:
 Checkpoint answer to use, if any:
 {prompt_input.checkpoint_answer}
 
+Checkpoint prompt:
+{prompt_input.checkpoint_prompt}
+
+Checkpoint options:
+{json.dumps(prompt_input.checkpoint_options, indent=2)}
+
+Checkpoint choice to use, if any:
+{prompt_input.checkpoint_choice}
+
 Tutor message:
 {prompt_input.tutor_message}
 
-If checkpoint_expected is true, prioritize answering the checkpoint question in checkpoint_answer. You may still set response_type to clarify if the student is confused, but do not leave checkpoint_answer null unless the student truly cannot attempt an answer.
-If checkpoint_expected is false, checkpoint_answer should be null.
+If checkpoint_expected is true and checkpoint_choice is provided, use exactly that checkpoint_choice.
+If checkpoint_expected is true, checkpoint_answer may be a short explanation for the selected option, but the graded field is checkpoint_choice.
+If checkpoint_expected is false, checkpoint_answer and checkpoint_choice should be null.
 If sampled_response_type is provided, you must use exactly that response_type. Do not choose a different mode.
 
 Choose the most realistic learner response mode:
@@ -181,6 +203,7 @@ Return JSON in this exact schema:
   "response_type": "continue | clarify | branch",
   "student_message": "string or null",
   "checkpoint_answer": "string or null",
+  "checkpoint_choice": "string or null",
   "self_reported_confidence": 0.0,
   "rationale_for_simulation": "brief private explanation of why this response matches the learner state"
 }}"""
@@ -252,6 +275,7 @@ def normalize_student_output(value: dict[str, Any]) -> dict[str, Any]:
         "response_type": response_type,
         "student_message": value.get("student_message"),
         "checkpoint_answer": value.get("checkpoint_answer"),
+        "checkpoint_choice": value.get("checkpoint_choice"),
         "self_reported_confidence": confidence,
         "rationale_for_simulation": value.get("rationale_for_simulation", ""),
     }

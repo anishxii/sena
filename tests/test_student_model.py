@@ -1,6 +1,11 @@
 from dataclasses import replace
 
-from emotiv_learn.student_model import HiddenKnowledgeStudent, default_hidden_knowledge_state
+from emotiv_learn.student_model import (
+    HiddenKnowledgeState,
+    HiddenKnowledgeStudent,
+    KnowledgeState,
+    default_hidden_knowledge_state,
+)
 
 
 def test_student_updates_hidden_knowledge_without_reward() -> None:
@@ -17,11 +22,13 @@ def test_student_updates_hidden_knowledge_without_reward() -> None:
         checkpoint_expected=False,
     )
 
-    before = transition.hidden_state_before.concept_mastery["learning_rate"]
-    after = transition.hidden_state_after.concept_mastery["learning_rate"]
+    before = transition.hidden_state_before.knowledge_state.concept_mastery["learning_rate"]
+    after = transition.hidden_state_after.knowledge_state.concept_mastery["learning_rate"]
     assert after > before
     assert transition.oracle_mastery_gain == after - before
     assert "reward" not in transition.evaluation
+    assert "knowledge_state" in transition.to_dict()["hidden_state_after"]
+    assert "neuro_state" in transition.to_dict()["hidden_state_after"]
 
 
 def test_response_probabilities_are_sampled_from_hidden_state() -> None:
@@ -59,9 +66,18 @@ def test_checkpoint_expected_emits_checkpoint_signal() -> None:
 
 def test_advanced_mastery_prefers_continue_over_clarify() -> None:
     hidden_state = default_hidden_knowledge_state()
-    concept_mastery = dict(hidden_state.concept_mastery)
+    concept_mastery = dict(hidden_state.knowledge_state.concept_mastery)
     concept_mastery["gradient"] = 0.92
-    hidden_state = replace(hidden_state, concept_mastery=concept_mastery, confidence=0.9, fatigue=0.1)
+    hidden_state = HiddenKnowledgeState(
+        knowledge_state=KnowledgeState(
+            concept_mastery=concept_mastery,
+            misconceptions=dict(hidden_state.knowledge_state.misconceptions),
+            confidence=0.9,
+            curiosity=hidden_state.knowledge_state.curiosity,
+            preferred_style=dict(hidden_state.knowledge_state.preferred_style),
+        ),
+        neuro_state=replace(hidden_state.neuro_state, fatigue=0.1),
+    )
     student = HiddenKnowledgeStudent(hidden_state, seed=4)
 
     transition = student.step(
@@ -73,3 +89,18 @@ def test_advanced_mastery_prefers_continue_over_clarify() -> None:
 
     probs = transition.response_type_probs
     assert probs["continue"] > probs["clarify"]
+
+
+def test_neuro_state_updates_separately_from_knowledge_state() -> None:
+    student = HiddenKnowledgeStudent(default_hidden_knowledge_state(), seed=5)
+    transition = student.step(
+        concept_id="convergence",
+        action_id="deepen",
+        tutor_message="Convergence connects gradients, curvature, stability, and optimization dynamics in a technical way.",
+        checkpoint_expected=False,
+    )
+
+    before = transition.hidden_state_before.neuro_state
+    after = transition.hidden_state_after.neuro_state
+    assert after.workload != before.workload
+    assert after.fatigue != before.fatigue

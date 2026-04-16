@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
-from dataclasses import replace
 from pathlib import Path
 import random
 import sys
@@ -13,7 +12,13 @@ from emotiv_learn import ACTION_BANK, DecisionEngine
 from emotiv_learn.live_training import LIVE_FEATURE_NAMES, LiveLLMStateBuilder, LiveStateInput
 from emotiv_learn.llm_contracts import compute_reward_from_interpreted
 from emotiv_learn.schemas import Outcome, RewardEvent, SemanticSignals, TaskResult
-from emotiv_learn.student_model import HiddenKnowledgeState, HiddenKnowledgeStudent, default_hidden_knowledge_state
+from emotiv_learn.student_model import (
+    HiddenKnowledgeState,
+    HiddenKnowledgeStudent,
+    KnowledgeState,
+    NeuroState,
+    default_hidden_knowledge_state,
+)
 
 
 CONTENT_STEPS = [
@@ -226,15 +231,24 @@ def _select_action(policy_mode: str, engine: DecisionEngine | None, state, rng: 
 def _initial_state_for_user(user_id: str) -> HiddenKnowledgeState:
     base = default_hidden_knowledge_state()
     profile = USER_PROFILES[user_id]
-    preferred_style = dict(base.preferred_style)
+    preferred_style = dict(base.knowledge_state.preferred_style)
     preferred_style.update(profile["preferred_style"])
-    return replace(
-        base,
-        concept_mastery=profile["mastery"],
-        confidence=profile["confidence"],
-        curiosity=profile["curiosity"],
-        fatigue=profile["fatigue"],
-        preferred_style=preferred_style,
+    return HiddenKnowledgeState(
+        knowledge_state=KnowledgeState(
+            concept_mastery=profile["mastery"],
+            misconceptions=dict(base.knowledge_state.misconceptions),
+            confidence=profile["confidence"],
+            curiosity=profile["curiosity"],
+            preferred_style=preferred_style,
+        ),
+        neuro_state=NeuroState(
+            workload=min(1.0, max(0.0, 0.18 + 0.55 * profile["fatigue"])),
+            fatigue=profile["fatigue"],
+            attention=base.neuro_state.attention,
+            vigilance=base.neuro_state.vigilance,
+            stress=base.neuro_state.stress,
+            engagement=base.neuro_state.engagement,
+        ),
     )
 
 

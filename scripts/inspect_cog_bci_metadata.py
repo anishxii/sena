@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from emotiv_learn.validation.cog_bci import (
+from emotiv_learn.cog_bci_metadata import (
     build_subject_nback_recording_summaries,
     load_nback_condition_labels,
     load_trigger_codes,

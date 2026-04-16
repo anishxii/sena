@@ -36,7 +36,7 @@ class OpenAIChatClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": max_tokens,
+            "max_completion_tokens": max_tokens,
             "temperature": temperature,
         }
         response = self._post(payload)
@@ -51,7 +51,7 @@ class OpenAIChatClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": max_tokens,
+            "max_completion_tokens": max_tokens,
             "temperature": temperature,
             "response_format": {"type": "json_object"},
         }

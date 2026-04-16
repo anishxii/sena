@@ -49,10 +49,20 @@ def _bandpower(signal_1d: np.ndarray, fs: int, fmin: float, fmax: float) -> floa
 def compute_bandpower_matrix(window: np.ndarray, fs: int = FS) -> tuple[np.ndarray, np.ndarray]:
     if window.ndim != 2 or window.shape[1] != len(CHANNELS):
         raise ValueError(f"expected window shape (n_samples, {len(CHANNELS)}), got {window.shape}")
+    return compute_bandpower_matrix_for_channels(window=window, channel_names=CHANNELS, fs=fs)
 
-    abs_bp = np.zeros((len(BANDS), len(CHANNELS)), dtype=np.float64)
+
+def compute_bandpower_matrix_for_channels(
+    window: np.ndarray,
+    channel_names: list[str],
+    fs: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    if window.ndim != 2 or window.shape[1] != len(channel_names):
+        raise ValueError(f"expected window shape (n_samples, {len(channel_names)}), got {window.shape}")
+
+    abs_bp = np.zeros((len(BANDS), len(channel_names)), dtype=np.float64)
     for band_index, (_, (flo, fhi)) in enumerate(BANDS.items()):
-        for channel_index in range(len(CHANNELS)):
+        for channel_index in range(len(channel_names)):
             abs_bp[band_index, channel_index] = _bandpower(window[:, channel_index], fs, flo, fhi)
 
     total_power = abs_bp.sum(axis=0, keepdims=True) + 1e-12
@@ -67,19 +77,41 @@ def cognitive_load_score(frontal_theta_alpha_ratio_mean: float) -> float:
 
 
 def compute_eeg_summary(window: np.ndarray, fs: int = FS) -> list[float]:
-    abs_bp, rel_bp = compute_bandpower_matrix(window, fs=fs)
+    return compute_eeg_summary_for_channels(window=window, channel_names=CHANNELS, fs=fs)
+
+
+def compute_eeg_summary_for_channels(
+    window: np.ndarray,
+    channel_names: list[str],
+    fs: int,
+) -> list[float]:
+    abs_bp, rel_bp = compute_bandpower_matrix_for_channels(window=window, channel_names=channel_names, fs=fs)
 
     theta_mean = float(rel_bp[0].mean())
     alpha_mean = float(rel_bp[1].mean())
     beta_mean = float(rel_bp[2].mean())
     gamma_mean = float(rel_bp[3].mean())
 
-    frontal_alpha_asymmetry = float(rel_bp[1, IDX_F4] - rel_bp[1, IDX_F3])
-    frontal_alpha_asymmetry_abs = float(abs_bp[1, IDX_F4] - abs_bp[1, IDX_F3])
+    channel_to_index = {name: index for index, name in enumerate(channel_names)}
+    idx_f3 = channel_to_index.get("F3")
+    idx_f4 = channel_to_index.get("F4")
+    if idx_f3 is not None and idx_f4 is not None:
+        frontal_alpha_asymmetry = float(rel_bp[1, idx_f4] - rel_bp[1, idx_f3])
+        frontal_alpha_asymmetry_abs = float(abs_bp[1, idx_f4] - abs_bp[1, idx_f3])
+    else:
+        frontal_alpha_asymmetry = 0.0
+        frontal_alpha_asymmetry_abs = 0.0
 
-    frontal_channel_indices = [CHANNELS.index(name) for name in ["F7", "F3", "F4", "F8"]]
-    theta_alpha_ratio = rel_bp[0, frontal_channel_indices] / (rel_bp[1, frontal_channel_indices] + 1e-12)
-    frontal_theta_alpha_ratio_mean = float(theta_alpha_ratio.mean())
+    frontal_channel_indices = [
+        channel_to_index[name]
+        for name in ["F7", "F3", "F4", "F8"]
+        if name in channel_to_index
+    ]
+    if frontal_channel_indices:
+        theta_alpha_ratio = rel_bp[0, frontal_channel_indices] / (rel_bp[1, frontal_channel_indices] + 1e-12)
+        frontal_theta_alpha_ratio_mean = float(theta_alpha_ratio.mean())
+    else:
+        frontal_theta_alpha_ratio_mean = 0.0
     load_score = cognitive_load_score(frontal_theta_alpha_ratio_mean)
 
     return [

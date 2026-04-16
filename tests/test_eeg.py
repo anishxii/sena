@@ -29,11 +29,18 @@ def test_synthetic_eeg_provider_emits_expected_schema() -> None:
             tutor_message="Step 1: identify the gradient. Step 2: follow the update carefully.",
             time_on_chunk=82.0,
             hidden_state={
-                "concept_mastery": {"gradient": 0.35},
-                "fatigue": 0.25,
-                "attention": 0.62,
-                "confidence": 0.48,
-                "engagement": 0.66,
+                "knowledge_state": {
+                    "concept_mastery": {"gradient": 0.35},
+                    "confidence": 0.48,
+                },
+                "neuro_state": {
+                    "workload": 0.42,
+                    "fatigue": 0.25,
+                    "attention": 0.62,
+                    "engagement": 0.66,
+                    "vigilance": 0.58,
+                    "stress": 0.30,
+                },
             },
             observable_signals={
                 "confusion_score": 0.68,
@@ -61,7 +68,10 @@ def test_heuristic_target_mapper_emits_proxy_and_feature_targets() -> None:
             "action_id": "worked_example",
             "tutor_message": "Work through the gradient step by step with a concrete example.",
             "time_on_chunk": 70.0,
-            "hidden_state": {"concept_mastery": {"gradient": 0.3}, "fatigue": 0.2, "attention": 0.65, "confidence": 0.45},
+            "hidden_state": {
+                "knowledge_state": {"concept_mastery": {"gradient": 0.3}, "confidence": 0.45},
+                "neuro_state": {"workload": 0.48, "fatigue": 0.2, "attention": 0.65, "vigilance": 0.62, "stress": 0.28},
+            },
             "observable_signals": {"confusion_score": 0.6, "engagement_score": 0.7},
         })()
     )
@@ -72,7 +82,10 @@ def test_heuristic_target_mapper_emits_proxy_and_feature_targets() -> None:
             "action_id": "worked_example",
             "tutor_message": "Work through the gradient step by step with a concrete example.",
             "time_on_chunk": 70.0,
-            "hidden_state": {"concept_mastery": {"gradient": 0.3}, "fatigue": 0.2, "attention": 0.65, "confidence": 0.45},
+            "hidden_state": {
+                "knowledge_state": {"concept_mastery": {"gradient": 0.3}, "confidence": 0.45},
+                "neuro_state": {"workload": 0.48, "fatigue": 0.2, "attention": 0.65, "vigilance": 0.62, "stress": 0.28},
+            },
             "observable_signals": {"confusion_score": 0.6, "engagement_score": 0.7},
         })()
     )
@@ -108,7 +121,10 @@ def test_retrieved_real_provider_uses_stew_index(tmp_path) -> None:
             action_id="worked_example",
             tutor_message="Use a clear worked example.",
             time_on_chunk=45.0,
-            hidden_state={"concept_mastery": {"gradient": 0.4}, "fatigue": 0.2, "attention": 0.7},
+            hidden_state={
+                "knowledge_state": {"concept_mastery": {"gradient": 0.4}, "confidence": 0.5},
+                "neuro_state": {"workload": 0.36, "fatigue": 0.2, "attention": 0.7, "vigilance": 0.68, "stress": 0.24},
+            },
             observable_signals={"confusion_score": 0.4, "engagement_score": 0.7},
         )
     )

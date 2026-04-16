@@ -14,6 +14,18 @@ def _clip01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
 
+def _hidden_bucket(hidden_state: dict[str, Any], key: str) -> dict[str, Any]:
+    value = hidden_state.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _hidden_value(hidden_state: dict[str, Any], *, bucket: str, key: str, default: float) -> float:
+    bucket_payload = _hidden_bucket(hidden_state, bucket)
+    if key in bucket_payload:
+        return _clip01(bucket_payload[key])
+    return _clip01(hidden_state.get(key, default))
+
+
 def _text_complexity(text: str) -> float:
     sentences = [
         sentence.strip()
@@ -228,20 +240,27 @@ class HeuristicTargetEEGMapper:
         hidden_state = context.hidden_state or {}
         observables = context.observable_signals or {}
 
-        mastery = _clip01(hidden_state.get("concept_mastery", {}).get(context.concept_id, 0.5))
+        knowledge_state = _hidden_bucket(hidden_state, "knowledge_state")
+        mastery = _clip01(knowledge_state.get("concept_mastery", {}).get(context.concept_id, hidden_state.get("concept_mastery", {}).get(context.concept_id, 0.5)))
         confusion = _clip01(observables.get("confusion_score", 0.5))
-        fatigue = _clip01(hidden_state.get("fatigue", observables.get("fatigue", 0.3)))
-        attention = _clip01(hidden_state.get("attention", observables.get("attention", 0.6)))
-        engagement = _clip01(observables.get("engagement_score", hidden_state.get("engagement", 0.6)))
-        confidence = _clip01(observables.get("confidence", hidden_state.get("confidence", 0.5)))
+        fatigue = _hidden_value(hidden_state, bucket="neuro_state", key="fatigue", default=observables.get("fatigue", 0.3))
+        attention = _hidden_value(hidden_state, bucket="neuro_state", key="attention", default=observables.get("attention", 0.6))
+        engagement = _clip01(observables.get("engagement_score", _hidden_value(hidden_state, bucket="neuro_state", key="engagement", default=0.6)))
+        confidence = _clip01(observables.get("confidence", _hidden_value(hidden_state, bucket="knowledge_state", key="confidence", default=0.5)))
+        workload = _hidden_value(hidden_state, bucket="neuro_state", key="workload", default=0.35)
+        vigilance = _hidden_value(hidden_state, bucket="neuro_state", key="vigilance", default=0.6)
+        stress = _hidden_value(hidden_state, bucket="neuro_state", key="stress", default=0.25)
         semantic_friction = _text_complexity(context.tutor_message)
         workload = _clip01(
-            0.32 * confusion
-            + 0.20 * fatigue
+            0.42 * workload
+            + 0.18 * confusion
+            + 0.14 * fatigue
             + 0.18 * semantic_friction
-            + 0.15 * (1.0 - mastery)
-            + 0.10 * (1.0 - attention)
-            - 0.05 * confidence
+            + 0.06 * (1.0 - mastery)
+            + 0.06 * stress
+            + 0.05 * (1.0 - attention)
+            - 0.04 * confidence
+            - 0.03 * vigilance
         )
         return EEGProxyState(
             workload=workload,

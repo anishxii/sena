@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .eeg_features import EEG_FEATURE_NAMES
 from .schemas import State, StateMetadata
+from .tutor_proxy import TUTOR_PROXY_FEATURE_NAMES, derive_tutor_facing_proxy_state
 
+COG_PROXY_FEATURE_NAMES = [
+    "proxy_workload_estimate",
+    "proxy_rolling_accuracy",
+    "proxy_rolling_rt_percentile",
+    "proxy_lapse_rate",
+]
 
-LIVE_FEATURE_NAMES = [
+CORE_LIVE_FEATURE_NAMES = [
     "last_confusion_score",
     "last_comprehension_score",
     "last_engagement_score",
@@ -24,6 +32,17 @@ LIVE_FEATURE_NAMES = [
     "previous_reward_norm",
 ]
 
+STATE_PROFILE_BEHAVIOR_ONLY = "behavior_only"
+STATE_PROFILE_CURRENT_EEG = "current_eeg"
+STATE_PROFILE_TUTOR_PROXY_EEG = "tutor_proxy_eeg"
+STATE_PROFILES = [
+    STATE_PROFILE_BEHAVIOR_ONLY,
+    STATE_PROFILE_CURRENT_EEG,
+    STATE_PROFILE_TUTOR_PROXY_EEG,
+]
+
+LIVE_FEATURE_NAMES = CORE_LIVE_FEATURE_NAMES + EEG_FEATURE_NAMES + COG_PROXY_FEATURE_NAMES + TUTOR_PROXY_FEATURE_NAMES
+
 
 @dataclass(frozen=True)
 class LiveStateInput:
@@ -37,14 +56,23 @@ class LiveStateInput:
     interpreted: dict | None
     student_response: dict | None
     previous_reward: float
+    eeg_features: list[float] | None = None
+    eeg_proxy_estimates: dict | None = None
 
 
 class LiveLLMStateBuilder:
     """Builds a compact non-EEG state from recent interpreted learner signals."""
 
+    def __init__(self, state_profile: str = STATE_PROFILE_CURRENT_EEG) -> None:
+        if state_profile not in STATE_PROFILES:
+            raise ValueError(f"unknown state_profile={state_profile}; expected one of {STATE_PROFILES}")
+        self.state_profile = state_profile
+
     def build_state(self, state_input: LiveStateInput) -> State:
         interpreted = state_input.interpreted or {}
         student_response = state_input.student_response or {}
+        eeg_features = state_input.eeg_features or [0.0] * len(EEG_FEATURE_NAMES)
+        eeg_proxy_estimates = state_input.eeg_proxy_estimates or {}
         followup_type = interpreted.get("followup_type", "unknown")
         difficulty = state_input.difficulty
 
@@ -66,6 +94,32 @@ class LiveLLMStateBuilder:
             1.0 if difficulty == "hard" else 0.0,
             _normalize_reward(state_input.previous_reward),
         ]
+
+        include_eeg = self.state_profile in {STATE_PROFILE_CURRENT_EEG, STATE_PROFILE_TUTOR_PROXY_EEG}
+        include_tutor_proxy = self.state_profile == STATE_PROFILE_TUTOR_PROXY_EEG
+        if include_eeg:
+            features.extend([_score(value, default=0.0) for value in eeg_features])
+            features.extend(
+                [
+                    _score(eeg_proxy_estimates.get("workload_estimate"), default=0.0),
+                    _score(eeg_proxy_estimates.get("rolling_accuracy"), default=0.0),
+                    _score(eeg_proxy_estimates.get("rolling_rt_percentile"), default=0.0),
+                    _score(eeg_proxy_estimates.get("lapse_rate"), default=0.0),
+                ]
+            )
+        else:
+            features.extend([0.0] * len(EEG_FEATURE_NAMES))
+            features.extend([0.0] * len(COG_PROXY_FEATURE_NAMES))
+
+        if include_tutor_proxy:
+            tutor_proxy = derive_tutor_facing_proxy_state(
+                interpreted=interpreted,
+                student_response=student_response,
+                eeg_proxy_estimates=eeg_proxy_estimates,
+            ).as_feature_dict()
+            features.extend([_score(tutor_proxy[name], default=0.0) for name in TUTOR_PROXY_FEATURE_NAMES])
+        else:
+            features.extend([0.0] * len(TUTOR_PROXY_FEATURE_NAMES))
 
         return State(
             timestamp=state_input.timestamp,

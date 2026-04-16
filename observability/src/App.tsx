@@ -1,99 +1,111 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import './styles.css';
 import {
   formatNumber,
   parseJsonl,
-  policyCounts,
   policyOrder,
   summarizeTurns,
-  turnsFromArtifact,
   turnsFromEvents,
   uniqueValues,
   userTurns,
 } from './data';
-import type { ExperimentArtifact, ExperimentEvent, TurnCompletedPayload } from './types';
-
-const streamPath = '/live_policy_comparison_stream.jsonl';
+import type { ExperimentEvent, TurnCompletedPayload } from './types';
 
 export default function App() {
   const [events, setEvents] = useState<ExperimentEvent[]>([]);
-  const [artifactTurns, setArtifactTurns] = useState<TurnCompletedPayload[]>([]);
-  const [isPolling, setIsPolling] = useState(true);
   const [selectedTurnId, setSelectedTurnId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [lastLoaded, setLastLoaded] = useState<string>('waiting for stream');
-
-  useEffect(() => {
-    if (!isPolling) return;
-    const load = async () => {
-      try {
-        const response = await fetch(`${streamPath}?t=${Date.now()}`, { cache: 'no-store' });
-        if (!response.ok) return;
-        const text = await response.text();
-        const parsed = parseJsonl(text);
-        setEvents(parsed);
-        setLastLoaded(new Date().toLocaleTimeString());
-      } catch {
-        setLastLoaded('stream unavailable');
-      }
-    };
-    load();
-    const interval = window.setInterval(load, 1500);
-    return () => window.clearInterval(interval);
-  }, [isPolling]);
+  const [fileName, setFileName] = useState<string>('No file loaded');
+  const [dragActive, setDragActive] = useState(false);
 
   const eventTurns = useMemo(() => turnsFromEvents(events), [events]);
-  const turns = artifactTurns.length > 0 ? artifactTurns : eventTurns;
+  const turns = eventTurns;
   const userFilteredTurns = useMemo(() => userTurns(turns, selectedUser), [turns, selectedUser]);
   const summary = useMemo(() => summarizeTurns(userFilteredTurns), [userFilteredTurns]);
   const users = useMemo(() => uniqueValues(turns, 'user_id'), [turns]);
-  const actionsByPolicy = useMemo(() => policyCounts(userFilteredTurns, 'action_id'), [userFilteredTurns]);
-  const responsesByPolicy = useMemo(() => policyCounts(userFilteredTurns, 'response_type'), [userFilteredTurns]);
   const selectedTurn = useMemo(() => {
     if (!selectedTurnId) return userFilteredTurns.at(-1) ?? null;
     return userFilteredTurns.find((turn) => turnId(turn) === selectedTurnId) ?? userFilteredTurns.at(-1) ?? null;
   }, [userFilteredTurns, selectedTurnId]);
+  const experimentMeta = useMemo(() => {
+    const start = events.find((event) => event.event_type === 'experiment_started');
+    return start?.payload as Record<string, unknown> | undefined;
+  }, [events]);
+  const metrics = useMemo(() => summarizeMetrics(userFilteredTurns), [userFilteredTurns]);
 
-  async function handleArtifactUpload(file: File | null) {
+  async function handleJsonlUpload(file: File | null) {
     if (!file) return;
     const text = await file.text();
-    const parsed = JSON.parse(text) as ExperimentArtifact;
-    setArtifactTurns(turnsFromArtifact(parsed));
-    setIsPolling(false);
-    setLastLoaded(`loaded ${file.name}`);
+    const parsed = parseJsonl(text);
+    setEvents(parsed);
+    setFileName(file.name);
+    setSelectedTurnId(null);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    void handleJsonlUpload(event.dataTransfer.files?.[0] ?? null);
   }
 
   return (
     <main className="shell">
       <header className="hero">
         <div>
-          <p className="eyebrow">Emotiv Learn Observatory</p>
-          <h1>Policy experiment console</h1>
+          <p className="eyebrow">Interpreted Policy Report</p>
+          <h1>Live policy events report</h1>
           <p className="subtle">
-            A quiet control surface for watching Tutor LLM calls, hidden-student transitions, observable rewards, and policy updates.
+            Drag in an interpreted JSONL log and inspect policy behavior, reward/oracle movement, interpreted signals, and EEG proxy changes.
           </p>
         </div>
         <div className="controls">
-          <button className={isPolling ? 'active' : ''} onClick={() => setIsPolling((value) => !value)}>
-            {isPolling ? 'Polling stream' : 'Stream paused'}
-          </button>
           <label className="fileButton">
-            Load artifact
-            <input type="file" accept=".json" onChange={(event) => handleArtifactUpload(event.target.files?.[0] ?? null)} />
+            Load JSONL
+            <input type="file" accept=".jsonl" onChange={(event) => void handleJsonlUpload(event.target.files?.[0] ?? null)} />
           </label>
+          <span className="fileLabel">{fileName}</span>
         </div>
       </header>
 
+      {turns.length === 0 ? (
+        <section
+          className={`dropzone ${dragActive ? 'dragActive' : ''}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={(event) => {
+            event.preventDefault();
+            setDragActive(false);
+          }}
+          onDrop={handleDrop}
+        >
+          <p className="dropEyebrow">Drop interpreted events</p>
+          <h2>Load a `.jsonl` report</h2>
+          <p>Best with `turn_completed` payloads that include interpreted signals, EEG windows, proxy estimates, and student transitions.</p>
+        </section>
+      ) : (
+        <>
+          <section className="reportTabs">
+            <span className="active">Report</span>
+            <span>Policies</span>
+            <span>Turns</span>
+            <span>Signals</span>
+          </section>
+
       <section className="statusGrid">
-        <Metric label="turn events" value={String(userFilteredTurns.length)} />
+        <Metric label="turns" value={String(experimentMeta?.turns ?? userFilteredTurns.length)} />
         <Metric label="users" value={String(users.length)} />
-        <Metric label="policies" value={String(Object.keys(summary).length)} />
-        <Metric label="last update" value={lastLoaded} mono />
+        <Metric label="avg reward" value={formatNumber(metrics.averageReward)} />
+        <Metric label="avg oracle gain" value={formatNumber(metrics.averageOracle)} />
+        <Metric label="checkpoint rate" value={`${Math.round(metrics.checkpointRate * 100)}%`} />
+        <Metric label="avg workload" value={formatNumber(metrics.averageWorkload)} />
       </section>
 
       <section className="toolbar">
-        <span>Focus</span>
+        <span>Report Focus</span>
         <button className={selectedUser === null ? 'active' : ''} onClick={() => setSelectedUser(null)}>
           all users
         </button>
@@ -106,14 +118,11 @@ export default function App() {
 
       <section className="layout">
         <div className="leftColumn">
-          <Panel title="Policy Comparison" quiet>
+          <Panel title="Policy Snapshot" quiet>
             <PolicyTable summary={summary} turns={userFilteredTurns} />
           </Panel>
-          <Panel title="Action Mix">
-            <Distribution counts={actionsByPolicy} />
-          </Panel>
-          <Panel title="Response Mix">
-            <Distribution counts={responsesByPolicy} />
+          <Panel title="Completed Turns">
+            <TurnList turns={userFilteredTurns} selectedId={selectedTurn ? turnId(selectedTurn) : null} onSelect={setSelectedTurnId} />
           </Panel>
         </div>
 
@@ -127,6 +136,8 @@ export default function App() {
           </Panel>
         </div>
       </section>
+        </>
+      )}
     </main>
   );
 }
@@ -179,25 +190,31 @@ function PolicyTable({ summary, turns }: { summary: ReturnType<typeof summarizeT
   );
 }
 
-function Distribution({ counts }: { counts: Record<string, Record<string, number>> }) {
+function TurnList({
+  turns,
+  selectedId,
+  onSelect,
+}: {
+  turns: TurnCompletedPayload[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
   return (
-    <div className="distribution">
-      {policyOrder
-        .filter((policy) => counts[policy])
-        .map((policy) => {
-          const entries = Object.entries(counts[policy]).sort((a, b) => b[1] - a[1]).slice(0, 4);
-          const total = entries.reduce((sum, [, value]) => sum + value, 0) || 1;
+    <div className="turnList">
+      {[...turns]
+        .sort((a, b) => a.turn_index - b.turn_index || a.user_id.localeCompare(b.user_id) || a.policy_mode.localeCompare(b.policy_mode))
+        .map((turn) => {
+          const id = turnId(turn);
+          const workload = getWorkload(turn);
           return (
-            <div className="distRow" key={policy}>
-              <span className="policyName">{policy}</span>
-              <div className="pills">
-                {entries.map(([label, value]) => (
-                  <span key={label} className="pill">
-                    {label} <b>{Math.round((value / total) * 100)}%</b>
-                  </span>
-                ))}
-              </div>
-            </div>
+            <button key={id} className={`turnItem ${selectedId === id ? 'selected' : ''}`} onClick={() => onSelect(id)}>
+              <span className="mono">t{turn.turn_index}</span>
+              <span>{turn.user_id}</span>
+              <span>{turn.policy_mode}</span>
+              <span className={turn.reward >= 0 ? 'positive' : 'negative'}>{formatNumber(turn.reward)}</span>
+              <span>{formatNumber(turn.oracle_mastery_gain)}</span>
+              <span>{formatNumber(workload)}</span>
+            </button>
           );
         })}
     </div>
@@ -213,6 +230,8 @@ function TurnDetail({ turn }: { turn: TurnCompletedPayload }) {
         <Metric label="action" value={turn.action_id} mono />
         <Metric label="reward" value={formatNumber(turn.reward)} />
         <Metric label="oracle gain" value={formatNumber(turn.oracle_mastery_gain)} />
+        <Metric label="workload" value={formatNumber(getWorkload(turn))} />
+        <Metric label="engagement" value={formatNumber(getEngagement(turn))} />
       </div>
       <article>
         <h3>Tutor</h3>
@@ -385,6 +404,32 @@ function smoothPath(points: { x: number; y: number }[]): string {
 
 function EmptyState() {
   return <div className="empty">No experiment events yet. Start a run or load an artifact.</div>;
+}
+
+function summarizeMetrics(turns: TurnCompletedPayload[]) {
+  const checkpoints = turns.filter((turn) => turn.checkpoint_correct !== null);
+  return {
+    averageReward: average(turns.map((turn) => turn.reward)),
+    averageOracle: average(turns.map((turn) => turn.oracle_mastery_gain)),
+    checkpointRate: checkpoints.length === 0 ? 0 : checkpoints.filter((turn) => turn.checkpoint_correct === true).length / checkpoints.length,
+    averageWorkload: average(turns.map(getWorkload)),
+  };
+}
+
+function getWorkload(turn: TurnCompletedPayload): number {
+  const proxy = (turn as TurnCompletedPayload & { eeg_proxy_estimate?: { workload_estimate?: number } }).eeg_proxy_estimate;
+  return proxy?.workload_estimate ?? 0;
+}
+
+function getEngagement(turn: TurnCompletedPayload): number {
+  const signals = turn.student_transition?.observable_signals as Record<string, unknown> | undefined;
+  const value = signals?.engagement_score;
+  return typeof value === 'number' ? value : 0;
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function turnId(turn: TurnCompletedPayload): string {

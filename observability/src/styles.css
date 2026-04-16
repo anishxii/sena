@@ -126,6 +126,11 @@ h3 {
   align-items: center;
 }
 
+.fileLabel {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .fileButton {
   position: relative;
   overflow: hidden;
@@ -200,6 +205,51 @@ pre {
 .toolbar span {
   font-size: 0.78rem;
   color: var(--tertiary);
+}
+
+.reportTabs {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.reportTabs .active {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dropzone {
+  padding: 48px 28px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface-raised);
+  text-align: center;
+}
+
+.dropzone.dragActive {
+  border-color: var(--text);
+  background: #232325;
+}
+
+.dropzone h2 {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.dropzone p {
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--muted);
+}
+
+.dropEyebrow {
+  margin-bottom: 10px;
+  color: var(--tertiary);
+  font-size: 0.74rem;
 }
 
 .layout {
@@ -434,6 +484,29 @@ pre {
 .pointTarget {
   fill: transparent;
   stroke: none;
+}
+
+.turnList {
+  display: grid;
+  gap: 0;
+}
+
+.turnItem {
+  display: grid;
+  grid-template-columns: 44px minmax(110px, 1fr) minmax(110px, 1fr) 72px 72px 72px;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+  font-size: 0.74rem;
+}
+
+.turnItem.selected {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .rewardPoint,

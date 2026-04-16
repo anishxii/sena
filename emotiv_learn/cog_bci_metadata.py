@@ -8,8 +8,6 @@ import zipfile
 
 import scipy.io
 
-from .windows import ExperimentWindow
-
 
 NBACK_CONDITION_TO_DIFFICULTY = {
     "ZeroBack": 0,
@@ -182,13 +180,17 @@ def build_subject_nback_recording_summaries(
 
     summaries: list[NBackRecordingSummary] = []
     with zipfile.ZipFile(zip_path) as archive:
+        names = archive.namelist()
         for session_id in ["1", "2", "3"]:
             for condition, set_file in NBACK_CONDITION_TO_SET_FILE.items():
                 label = labels.get((subject_id, session_id, condition))
                 if label is None:
                     continue
-                archive_name = f"{subject_id}/ses-S{session_id}/eeg/{set_file}"
-                if archive_name not in archive.namelist():
+                archive_name = _resolve_archive_member(
+                    names=names,
+                    suffix=f"/ses-S{session_id}/eeg/{set_file}",
+                )
+                if archive_name is None:
                     continue
                 set_payload = archive.read(archive_name)
                 event_summary = summarize_nback_set_events(set_payload, condition=condition)
@@ -210,45 +212,11 @@ def build_subject_nback_recording_summaries(
     return summaries
 
 
-def build_subject_nback_windows(cog_bci_dir: str | Path, subject_id: str) -> list[ExperimentWindow]:
-    summaries = build_subject_nback_recording_summaries(cog_bci_dir=cog_bci_dir, subject_id=subject_id)
-    rt_values = [summary.mean_response_time_s for summary in summaries if summary.mean_response_time_s is not None]
-    rt_min = min(rt_values) if rt_values else 0.0
-    rt_max = max(rt_values) if rt_values else 1.0
-    rt_span = max(rt_max - rt_min, 1e-6)
-
-    windows: list[ExperimentWindow] = []
-    for summary in summaries:
-        if summary.mean_response_time_s is None:
-            rt_percentile = 0.5
-        else:
-            rt_percentile = (summary.mean_response_time_s - rt_min) / rt_span
-        windows.append(
-            ExperimentWindow(
-                window_id=f"{summary.subject_id}_ses{summary.session_id}_{summary.condition}",
-                subject_id=summary.subject_id,
-                session_id=summary.session_id,
-                task="n_back",
-                difficulty_level=summary.difficulty_level,
-                workload_estimate=summary.workload_estimate,
-                rolling_accuracy=summary.response_accuracy,
-                rolling_rt_percentile=_clip01(rt_percentile),
-                lapse_rate=_clip01(1.0 - summary.response_accuracy),
-                eeg_features=[],
-                metadata={
-                    "source": "cog_bci_condition_summary",
-                    "condition": summary.condition,
-                    "response_count": summary.response_count,
-                    "stimulus_count": summary.stimulus_count,
-                    "mean_response_time_s": -1.0
-                    if summary.mean_response_time_s is None
-                    else round(summary.mean_response_time_s, 6),
-                    "kss_beginning": -1.0 if summary.kss_beginning is None else summary.kss_beginning,
-                    "kss_end": -1.0 if summary.kss_end is None else summary.kss_end,
-                },
-            )
-        )
-    return windows
+def _resolve_archive_member(names: list[str], suffix: str) -> str | None:
+    for name in names:
+        if name.endswith(suffix):
+            return name
+    return None
 
 
 def summarize_nback_set_events(set_payload: bytes, condition: str) -> dict[str, float | int | None]:
@@ -315,14 +283,10 @@ def _subject_id(value: str) -> str:
 
 
 def _normalize_rsme(value: float) -> float:
-    # The RSME scale is commonly treated as 0-150; COG-BCI values in practice
-    # occupy a smaller range but keeping the published scale avoids leakage.
     return _clip01(value / 150.0)
 
 
 def _normalize_kss(value: float) -> float:
-    # KSS is a 1-9 sleepiness scale. Some rows contain sentinel negatives for
-    # missing values, so clamp after normalizing.
     return _clip01((value - 1.0) / 8.0)
 
 

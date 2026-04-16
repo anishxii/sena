@@ -15,6 +15,18 @@ def _clip01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
 
+def _hidden_bucket(hidden_state: dict, key: str) -> dict:
+    value = hidden_state.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _hidden_value(hidden_state: dict, *, bucket: str, key: str, default: float) -> float:
+    bucket_payload = _hidden_bucket(hidden_state, bucket)
+    if key in bucket_payload:
+        return _clip01(bucket_payload[key])
+    return _clip01(hidden_state.get(key, default))
+
+
 @dataclass(frozen=True)
 class STEWWorkloadFeatureMapper:
     """Polynomial ridge mapper from workload to EEG summary features.
@@ -28,28 +40,40 @@ class STEWWorkloadFeatureMapper:
     feature_names: list[str]
     basis_names: list[str]
     coefficients: list[list[float]]
-    feature_min: list[float]
-    feature_max: list[float]
+    feature_lower: list[float]
+    feature_upper: list[float]
 
     def predict_proxy_state(self, context: TargetEEGContext) -> EEGProxyState:
         hidden_state = context.hidden_state or {}
         observables = context.observable_signals or {}
 
-        mastery = _clip01(hidden_state.get("concept_mastery", {}).get(context.concept_id, 0.5))
+        knowledge_state = _hidden_bucket(hidden_state, "knowledge_state")
+        mastery = _clip01(
+            knowledge_state.get("concept_mastery", {}).get(
+                context.concept_id,
+                hidden_state.get("concept_mastery", {}).get(context.concept_id, 0.5),
+            )
+        )
         confusion = _clip01(observables.get("confusion_score", 0.5))
-        fatigue = _clip01(hidden_state.get("fatigue", observables.get("fatigue", 0.3)))
-        attention = _clip01(hidden_state.get("attention", observables.get("attention", 0.6)))
-        engagement = _clip01(observables.get("engagement_score", hidden_state.get("engagement", 0.6)))
-        confidence = _clip01(observables.get("confidence", hidden_state.get("confidence", 0.5)))
+        fatigue = _hidden_value(hidden_state, bucket="neuro_state", key="fatigue", default=observables.get("fatigue", 0.3))
+        attention = _hidden_value(hidden_state, bucket="neuro_state", key="attention", default=observables.get("attention", 0.6))
+        engagement = _clip01(observables.get("engagement_score", _hidden_value(hidden_state, bucket="neuro_state", key="engagement", default=0.6)))
+        confidence = _clip01(observables.get("confidence", _hidden_value(hidden_state, bucket="knowledge_state", key="confidence", default=0.5)))
+        workload = _hidden_value(hidden_state, bucket="neuro_state", key="workload", default=0.35)
+        vigilance = _hidden_value(hidden_state, bucket="neuro_state", key="vigilance", default=0.6)
+        stress = _hidden_value(hidden_state, bucket="neuro_state", key="stress", default=0.25)
 
         semantic_friction = _clip01(observables.get("semantic_friction", observables.get("comprehension_difficulty", 0.5)))
         workload = _clip01(
-            0.34 * confusion
-            + 0.18 * fatigue
+            0.42 * workload
+            + 0.18 * confusion
+            + 0.14 * fatigue
             + 0.16 * semantic_friction
-            + 0.14 * (1.0 - mastery)
-            + 0.10 * (1.0 - attention)
-            + 0.08 * (1.0 - confidence)
+            + 0.06 * (1.0 - mastery)
+            + 0.08 * stress
+            + 0.06 * (1.0 - attention)
+            + 0.05 * (1.0 - confidence)
+            - 0.03 * vigilance
         )
         return EEGProxyState(
             workload=workload,
@@ -67,8 +91,6 @@ class STEWWorkloadFeatureMapper:
                 1.0,
                 proxy.workload,
                 proxy.workload ** 2,
-                proxy.workload * proxy.confidence,
-                proxy.workload * proxy.fatigue,
             ],
             dtype=np.float64,
         )
@@ -76,8 +98,8 @@ class STEWWorkloadFeatureMapper:
         raw_prediction = design @ coefficients
         clipped = []
         for index, value in enumerate(raw_prediction.tolist()):
-            lower = self.feature_min[index]
-            upper = self.feature_max[index]
+            lower = self.feature_lower[index]
+            upper = self.feature_upper[index]
             bounded = min(max(float(value), lower), upper)
             if index == 4:
                 clipped.append(round(max(-1.0, min(1.0, bounded)), 6))
@@ -99,7 +121,7 @@ def fit_stew_workload_feature_mapper(
             if window.workload_rating is None:
                 continue
             workload = _clip01((window.workload_rating - 1.0) / 8.0)
-            rows.append([1.0, workload, workload ** 2, workload * 0.5, workload * 0.5])
+            rows.append([1.0, workload, workload ** 2])
             targets.append(window.features)
 
     if not rows:
@@ -110,15 +132,19 @@ def fit_stew_workload_feature_mapper(
     xtx = x.T @ x
     ridge = ridge_alpha * np.eye(xtx.shape[0], dtype=np.float64)
     coefficients = np.linalg.solve(xtx + ridge, x.T @ y)
-    feature_min = y.min(axis=0).tolist()
-    feature_max = y.max(axis=0).tolist()
+    # The absolute alpha asymmetry feature has a very large raw scale and is
+    # not stable enough to use as a forward retrieval target in the current
+    # STEW-only workload mapper, so keep it at its empirical center.
+    coefficients[:, 5] = 0.0
+    feature_lower = np.quantile(y, 0.01, axis=0).tolist()
+    feature_upper = np.quantile(y, 0.99, axis=0).tolist()
 
     return STEWWorkloadFeatureMapper(
         feature_names=list(feature_index.feature_names),
-        basis_names=["bias", "workload", "workload_sq", "workload_x_confidence", "workload_x_fatigue"],
+        basis_names=["bias", "workload", "workload_sq"],
         coefficients=coefficients.tolist(),
-        feature_min=[float(value) for value in feature_min],
-        feature_max=[float(value) for value in feature_max],
+        feature_lower=[float(value) for value in feature_lower],
+        feature_upper=[float(value) for value in feature_upper],
     )
 
 
@@ -140,6 +166,6 @@ def load_stew_workload_feature_mapper(path: str | Path) -> STEWWorkloadFeatureMa
         feature_names=list(payload["feature_names"]),
         basis_names=list(payload["basis_names"]),
         coefficients=[[float(value) for value in row] for row in payload["coefficients"]],
-        feature_min=[float(value) for value in payload["feature_min"]],
-        feature_max=[float(value) for value in payload["feature_max"]],
+        feature_lower=[float(value) for value in payload["feature_lower"]],
+        feature_upper=[float(value) for value in payload["feature_upper"]],
     )

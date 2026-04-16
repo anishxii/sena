@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from emotiv_learn.validation.cog_bci import (
+from emotiv_learn.cog_bci_metadata import (
     build_nback_condition_labels,
-    build_subject_nback_windows,
     load_kss_scores,
     load_rsme_scores,
+    NBackRecordingSummary,
     load_trigger_codes,
     summarize_nback_events,
 )
@@ -74,24 +74,7 @@ def test_summarize_nback_events_estimates_accuracy_and_rt() -> None:
     assert summary["response_accuracy"] == 0.5
     assert summary["mean_response_time_s"] == 1.125
 
-
-def test_build_subject_nback_windows_from_summaries(monkeypatch) -> None:
-    from emotiv_learn.validation import cog_bci
-    from emotiv_learn.validation.cog_bci import NBackRecordingSummary
-
-    monkeypatch.setattr(
-        cog_bci,
-        "build_subject_nback_recording_summaries",
-        lambda cog_bci_dir, subject_id: [
-            NBackRecordingSummary(subject_id, "1", "ZeroBack", 0, 0.2, 1.0, 0.4, 20, 60, 0.1, 0.2),
-            NBackRecordingSummary(subject_id, "1", "OneBack", 1, 0.4, 0.9, 0.6, 20, 60, 0.1, 0.2),
-            NBackRecordingSummary(subject_id, "1", "TwoBack", 2, 0.7, 0.75, 0.8, 20, 60, 0.1, 0.2),
-        ],
-    )
-
-    windows = build_subject_nback_windows("unused", "sub-01")
-
-    assert [window.difficulty_level for window in windows] == [0, 1, 2]
-    assert windows[0].rolling_rt_percentile == 0.0
-    assert windows[-1].rolling_rt_percentile == 1.0
-    assert windows[-1].lapse_rate == 0.25
+def test_nback_recording_summary_dataclass_shape() -> None:
+    summary = NBackRecordingSummary("sub-01", "1", "ZeroBack", 0, 0.2, 1.0, 0.4, 20, 60, 0.1, 0.2)
+    assert summary.subject_id == "sub-01"
+    assert summary.difficulty_level == 0
