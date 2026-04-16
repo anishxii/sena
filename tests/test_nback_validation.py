@@ -7,6 +7,7 @@ from emotiv_learn.validation import (
     build_toy_nback_windows,
     compute_nback_reward,
 )
+from emotiv_learn.validation.transition_model import FittedNBackTransitionModel
 from emotiv_learn.validation.runner import run_toy_nback_validation, summarize_validation
 
 
@@ -45,6 +46,19 @@ def test_environment_step_returns_action_conditioned_observation() -> None:
     assert observation.window.difficulty_level == 1
     assert result.observation.window.difficulty_level == 2
     assert isinstance(result.reward, float)
+    assert result.info["model_type"] == "fitted_centroid_shift"
+
+
+def test_fitted_transition_model_uses_observed_difficulty_shift() -> None:
+    windows = build_toy_nback_windows(seed=9)
+    model = FittedNBackTransitionModel(windows)
+    current = next(window for window in windows if window.subject_id == "toy_sub02" and window.difficulty_level == 1)
+
+    target = model.predict(current, "increase_difficulty")
+
+    assert target.difficulty_level == 2
+    assert target.model_info["model_type"] == "fitted_centroid_shift"
+    assert target.workload_estimate >= current.workload_estimate
 
 
 def test_decision_engine_supports_validation_action_bank() -> None:

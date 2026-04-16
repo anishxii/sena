@@ -2,6 +2,7 @@
 
 from .environment import NBackRestitchingEnvironment
 from .reward import compute_nback_reward
+from .transition_model import FittedNBackTransitionModel, HeuristicNBackTransitionModel
 from .windows import (
     NBACK_ACTION_BANK,
     NBACK_ACTION_IDS,
@@ -16,6 +17,8 @@ __all__ = [
     "build_toy_nback_windows",
     "compute_nback_reward",
     "ExperimentWindow",
+    "FittedNBackTransitionModel",
+    "HeuristicNBackTransitionModel",
     "NBackObservation",
     "NBackRestitchingEnvironment",
     "NBackStateBuilder",
