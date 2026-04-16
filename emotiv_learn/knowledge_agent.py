@@ -254,6 +254,7 @@ class KnowledgeAgent:
             + 0.07 * evaluation["clarity"]
             + 0.05 * appraisal["retrieval_practice"]
             - 0.10 * appraisal["extraneous_load"]
+            - 0.04 * before.fatigue
         )
         curiosity = _clip01(
             before.curiosity
@@ -272,14 +273,14 @@ class KnowledgeAgent:
             + 0.08 * appraisal["productive_challenge"]
             + 0.05 * evaluation["supportiveness"]
             + 0.04 * evaluation["novelty"]
-            - 0.08 * fatigue
+            - 0.12 * fatigue
         )
         attention = _clip01(
             before.attention
             + 0.07 * evaluation["step_structure"]
             + 0.04 * appraisal["productive_challenge"]
             - 0.08 * appraisal["extraneous_load"]
-            - 0.05 * fatigue
+            - 0.14 * fatigue
         )
 
         return KnowledgeAgentState(
