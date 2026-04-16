@@ -1,7 +1,16 @@
 """Core package for the Emotiv Learn decision policy system."""
 
 from .decision_engine import DecisionEngine
-from .eeg import EEGObservationContext, EEGProvider, EEGWindow, SyntheticEEGProvider
+from .eeg import (
+    EEGObservationContext,
+    EEGProvider,
+    EEGProxyState,
+    EEGWindow,
+    HeuristicTargetEEGMapper,
+    RetrievedEEGProvider,
+    SyntheticEEGProvider,
+    build_eeg_provider,
+)
 from .knowledge_agent import KnowledgeAgent, KnowledgeAgentProfile, KnowledgeAgentState, KnowledgeTurn
 from .knowledge_evaluator import KnowledgeEvaluation, evaluate_knowledge_state
 from .knowledge_scenarios import BACKPROP_SCENARIO, ConceptSpec, TopicScenario
@@ -14,7 +23,9 @@ __all__ = [
     "DecisionEngine",
     "EEGObservationContext",
     "EEGProvider",
+    "EEGProxyState",
     "EEGWindow",
+    "HeuristicTargetEEGMapper",
     "HiddenLearnerSimulator",
     "HiddenLearnerState",
     "KnowledgeAgent",
@@ -23,8 +34,10 @@ __all__ = [
     "KnowledgeEvaluation",
     "KnowledgeTurn",
     "LearnerProfile",
+    "RetrievedEEGProvider",
     "SyntheticEEGProvider",
     "BACKPROP_SCENARIO",
+    "build_eeg_provider",
     "ConceptSpec",
     "TopicScenario",
     "compute_reward_from_interpreted",
