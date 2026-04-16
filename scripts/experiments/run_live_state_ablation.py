@@ -4,14 +4,14 @@ import argparse
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from emotiv_learn.live_training import (  # noqa: E402
     STATE_PROFILE_BEHAVIOR_ONLY,
     STATE_PROFILE_CURRENT_EEG,
     STATE_PROFILE_TUTOR_PROXY_EEG,
 )
-from scripts.live_policy_comparison import run_live_policy_comparison  # noqa: E402
+from scripts.experiments.live_policy_comparison import run_live_policy_comparison  # noqa: E402
 
 
 ABLATION_PROFILES = [

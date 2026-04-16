@@ -44,11 +44,11 @@ The EEG path is now:
   State construction logic and ablation profiles.
 - `emotiv_learn/reward_model.py`
   Deterministic reward functions from interpreted learner signals.
-- `scripts/live_policy_comparison.py`
+- `scripts/experiments/live_policy_comparison.py`
   Main live experiment runner.
-- `scripts/run_live_state_ablation.py`
+- `scripts/experiments/run_live_state_ablation.py`
   Runs the three ablation profiles.
-- `scripts/plot_state_ablation.py`
+- `scripts/experiments/plot_state_ablation.py`
   Renders matplotlib plots from ablation outputs.
 
 ## How Another Agent Should Think About This Repo
@@ -69,7 +69,7 @@ If you are another LLM or coding agent:
 Run the ablation:
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/run_live_state_ablation.py \
+python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/run_live_state_ablation.py \
   --turns 10 \
   --seed 17 \
   --model gpt-5.4-mini \
@@ -81,7 +81,7 @@ python3 /Users/anish/PERSONAL/emotiv_learn/scripts/run_live_state_ablation.py \
 Plot the ablation:
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/plot_state_ablation.py \
+python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/plot_state_ablation.py \
   --input-dir /Users/anish/PERSONAL/emotiv_learn/artifacts/state_ablation \
   --output /Users/anish/PERSONAL/emotiv_learn/artifacts/state_ablation/ablation_summary.png
 ```
@@ -89,7 +89,7 @@ python3 /Users/anish/PERSONAL/emotiv_learn/scripts/plot_state_ablation.py \
 Run one live simulator workflow:
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/live_llm_training_loop.py \
+python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/live_llm_training_loop.py \
   --topic "gradient descent" \
   --user-id live_user_a \
   --turns 5 \

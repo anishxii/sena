@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
 from emotiv_learn.eeg import EEGObservationContext, build_eeg_provider

@@ -1,4 +1,4 @@
-from scripts.knowledge_policy_comparison import run_comparison
+from scripts.experiments.knowledge_policy_comparison import run_comparison
 
 
 def test_knowledge_policy_comparison_returns_all_baselines() -> None:

@@ -9,7 +9,7 @@ from pathlib import Path
 import random
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from emotiv_learn import ACTION_BANK, DecisionEngine
 from emotiv_learn.eeg import EEGObservationContext, build_eeg_provider
@@ -35,7 +35,7 @@ from emotiv_learn.reward_model import compute_observable_learning_reward
 from emotiv_learn.schemas import Outcome, RewardEvent, SemanticSignals, TaskResult
 from emotiv_learn.student_model import HiddenKnowledgeStudent
 from emotiv_learn.tutor_proxy import derive_tutor_facing_proxy_state
-from scripts.knowledge_policy_comparison import (
+from scripts.experiments.knowledge_policy_comparison import (
     CONTENT_STEPS,
     USER_PROFILES,
     _initial_state_for_user,
