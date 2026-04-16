@@ -6,12 +6,27 @@ from emotiv_learn.decision_engine import DecisionEngine
 from emotiv_learn.schemas import Outcome, RewardEvent, SemanticSignals, TaskResult
 
 from .baselines import ClassicWorkloadRulePolicy, FixedMaintainPolicy, RandomNBackPolicy
+from .cog_bci import build_subject_nback_windows
 from .environment import NBackRestitchingEnvironment
 from .windows import NBACK_ACTION_BANK, NBACK_FEATURE_NAMES, NBackStateBuilder, build_toy_nback_windows
 
 
 def run_toy_nback_validation(turns: int = 30, seed: int = 7, subject_id: str = "toy_sub02") -> dict:
     windows = build_toy_nback_windows(seed=seed)
+    return run_nback_validation(windows=windows, turns=turns, seed=seed, subject_id=subject_id)
+
+
+def run_cog_bci_nback_validation(
+    cog_bci_dir: str,
+    turns: int = 30,
+    seed: int = 7,
+    subject_id: str = "sub-01",
+) -> dict:
+    windows = build_subject_nback_windows(cog_bci_dir=cog_bci_dir, subject_id=subject_id)
+    return run_nback_validation(windows=windows, turns=turns, seed=seed, subject_id=subject_id)
+
+
+def run_nback_validation(windows: list, turns: int, seed: int, subject_id: str) -> dict:
     return {
         "fixed_maintain": _run_baseline(FixedMaintainPolicy(), windows, turns, seed, subject_id),
         "classic_rule": _run_baseline(ClassicWorkloadRulePolicy(), windows, turns, seed, subject_id),

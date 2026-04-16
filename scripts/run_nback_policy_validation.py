@@ -7,23 +7,39 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from emotiv_learn.validation.runner import run_toy_nback_validation, summarize_validation
+from emotiv_learn.validation.runner import (
+    run_cog_bci_nback_validation,
+    run_toy_nback_validation,
+    summarize_validation,
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the N-Back policy validation scaffold.")
     parser.add_argument("--turns", type=int, default=30)
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--subject-id", default="toy_sub02")
+    parser.add_argument("--source", choices=["toy", "cog_bci"], default="toy")
+    parser.add_argument("--subject-id", default=None)
+    parser.add_argument("--cog-bci-dir", default="data/cog_bci")
     parser.add_argument("--output", default="artifacts/nback_policy_validation.json")
     args = parser.parse_args()
 
-    results = run_toy_nback_validation(turns=args.turns, seed=args.seed, subject_id=args.subject_id)
+    subject_id = args.subject_id or ("toy_sub02" if args.source == "toy" else "sub-01")
+    if args.source == "toy":
+        results = run_toy_nback_validation(turns=args.turns, seed=args.seed, subject_id=subject_id)
+    else:
+        results = run_cog_bci_nback_validation(
+            cog_bci_dir=args.cog_bci_dir,
+            turns=args.turns,
+            seed=args.seed,
+            subject_id=subject_id,
+        )
     summary = summarize_validation(results)
     output = {
         "turns": args.turns,
         "seed": args.seed,
-        "subject_id": args.subject_id,
+        "source": args.source,
+        "subject_id": subject_id,
         "summary": summary,
         "results": results,
     }

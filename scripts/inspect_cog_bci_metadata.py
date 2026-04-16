@@ -7,12 +7,17 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from emotiv_learn.validation.cog_bci import load_nback_condition_labels, load_trigger_codes
+from emotiv_learn.validation.cog_bci import (
+    build_subject_nback_recording_summaries,
+    load_nback_condition_labels,
+    load_trigger_codes,
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect parsed COG-BCI questionnaire and trigger metadata.")
     parser.add_argument("--cog-bci-dir", default="data/cog_bci")
+    parser.add_argument("--subject-id", default=None)
     args = parser.parse_args()
 
     labels = load_nback_condition_labels(args.cog_bci_dir)
@@ -33,6 +38,16 @@ def main() -> None:
         print(f"N-Back trigger codes: {len(nback_triggers)}")
         for trigger in nback_triggers[:12]:
             print(f"  {trigger.code}: {trigger.content}")
+
+    if args.subject_id:
+        summaries = build_subject_nback_recording_summaries(args.cog_bci_dir, args.subject_id)
+        print(f"{args.subject_id} N-Back recording summaries: {len(summaries)}")
+        for summary in summaries:
+            print(
+                f"  ses={summary.session_id} condition={summary.condition} "
+                f"difficulty={summary.difficulty_level} workload={summary.workload_estimate:.3f} "
+                f"accuracy={summary.response_accuracy:.3f} rt={summary.mean_response_time_s}"
+            )
 
 
 if __name__ == "__main__":

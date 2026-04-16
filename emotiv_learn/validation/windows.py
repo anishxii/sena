@@ -8,8 +8,8 @@ from emotiv_learn.schemas import Action, State, StateMetadata
 
 
 NBACK_ACTION_IDS = [
-    "decrease_difficulty",
     "maintain_difficulty",
+    "decrease_difficulty",
     "increase_difficulty",
 ]
 NBACK_ACTION_BANK = [Action(action_id=action_id, params={}) for action_id in NBACK_ACTION_IDS]

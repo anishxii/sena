@@ -61,7 +61,7 @@ def test_decision_engine_supports_validation_action_bank() -> None:
     action_scores = engine.score_actions(state, NBACK_ACTION_BANK)
 
     assert list(action_scores.scores) == [action.action_id for action in NBACK_ACTION_BANK]
-    assert action_scores.selected_action == "decrease_difficulty"
+    assert action_scores.selected_action == "maintain_difficulty"
 
 
 def test_toy_validation_runner_returns_all_baselines() -> None:
