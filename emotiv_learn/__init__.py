@@ -11,6 +11,7 @@ from .eeg import (
     SyntheticEEGProvider,
     build_eeg_provider,
 )
+from .eeg_mapper import STEWWorkloadFeatureMapper, fit_stew_workload_feature_mapper
 from .knowledge_agent import KnowledgeAgent, KnowledgeAgentProfile, KnowledgeAgentState, KnowledgeTurn
 from .knowledge_evaluator import KnowledgeEvaluation, evaluate_knowledge_state
 from .knowledge_scenarios import BACKPROP_SCENARIO, ConceptSpec, TopicScenario
@@ -25,6 +26,7 @@ __all__ = [
     "EEGProvider",
     "EEGProxyState",
     "EEGWindow",
+    "STEWWorkloadFeatureMapper",
     "HeuristicTargetEEGMapper",
     "HiddenLearnerSimulator",
     "HiddenLearnerState",
@@ -38,6 +40,7 @@ __all__ = [
     "SyntheticEEGProvider",
     "BACKPROP_SCENARIO",
     "build_eeg_provider",
+    "fit_stew_workload_feature_mapper",
     "ConceptSpec",
     "TopicScenario",
     "compute_reward_from_interpreted",

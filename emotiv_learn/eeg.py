@@ -126,10 +126,12 @@ class SyntheticEEGProvider:
         target_features = self.mapper.predict_features(target_context)
         features = []
         for index, value in enumerate(target_features):
-            if index in {4, 5}:
+            if index == 4:
                 noisy = max(-1.0, min(1.0, value + self.rng.gauss(0.0, 0.02)))
             elif index == 6:
                 noisy = max(0.0, value + self.rng.gauss(0.0, 0.05))
+            elif index == 5:
+                noisy = value + self.rng.gauss(0.0, 0.02)
             else:
                 noisy = _clip01(value + self.rng.gauss(0.0, 0.01))
             features.append(round(float(noisy), 4))
@@ -277,12 +279,18 @@ def build_eeg_provider(
     seed: int,
     stew_dir: str | None = None,
     index_path: str | None = None,
+    mapper_path: str | None = None,
     epoch_sec: int = 30,
     stride_sec: int = 10,
     user_to_subject: dict[str, str] | None = None,
 ) -> EEGProvider:
+    mapper = None
+    if mapper_path:
+        from .eeg_mapper import load_stew_workload_feature_mapper
+
+        mapper = load_stew_workload_feature_mapper(mapper_path)
     if eeg_mode == "synthetic":
-        return SyntheticEEGProvider(seed=seed)
+        return SyntheticEEGProvider(seed=seed, mapper=mapper)
     if eeg_mode != "retrieved_real":
         raise ValueError(f"unknown eeg_mode: {eeg_mode}")
     if stew_dir is None:
@@ -296,6 +304,7 @@ def build_eeg_provider(
     return RetrievedEEGProvider(
         feature_index=feature_index,
         stew_dir=stew_dir,
+        mapper=mapper,
         user_to_subject=user_to_subject,
         seed=seed,
         epoch_sec=epoch_sec,
