@@ -7,7 +7,7 @@ from emotiv_learn.validation import (
     build_toy_nback_windows,
     compute_nback_reward,
 )
-from emotiv_learn.validation.transition_model import FittedNBackTransitionModel
+from emotiv_learn.validation.transition_model import FittedNBackTransitionModel, SupervisedNBackTransitionModel
 from emotiv_learn.validation.runner import run_toy_nback_validation, summarize_validation
 
 
@@ -46,7 +46,7 @@ def test_environment_step_returns_action_conditioned_observation() -> None:
     assert observation.window.difficulty_level == 1
     assert result.observation.window.difficulty_level == 2
     assert isinstance(result.reward, float)
-    assert result.info["model_type"] == "fitted_centroid_shift"
+    assert result.info["model_type"] == "supervised_ridge"
 
 
 def test_fitted_transition_model_uses_observed_difficulty_shift() -> None:
@@ -59,6 +59,19 @@ def test_fitted_transition_model_uses_observed_difficulty_shift() -> None:
     assert target.difficulty_level == 2
     assert target.model_info["model_type"] == "fitted_centroid_shift"
     assert target.workload_estimate >= current.workload_estimate
+
+
+def test_supervised_transition_model_trains_from_indexed_pairs() -> None:
+    windows = build_toy_nback_windows(seed=10)
+    model = SupervisedNBackTransitionModel(windows)
+    current = next(window for window in windows if window.subject_id == "toy_sub03" and window.difficulty_level == 1)
+
+    target = model.predict(current, "decrease_difficulty")
+
+    assert target.difficulty_level == 0
+    assert target.model_info["model_type"] == "supervised_ridge"
+    assert target.model_info["training_examples"] > 0
+    assert 0.0 <= target.workload_estimate <= 1.0
 
 
 def test_decision_engine_supports_validation_action_bank() -> None:

@@ -6,7 +6,7 @@ import math
 import random
 
 from .reward import compute_nback_reward
-from .transition_model import FittedNBackTransitionModel, NBackTransitionModel
+from .transition_model import NBackTransitionModel, SupervisedNBackTransitionModel
 from .windows import ExperimentWindow, NBACK_ACTION_IDS, NBackObservation
 
 
@@ -33,7 +33,7 @@ class NBackRestitchingEnvironment:
         self.windows = windows
         self.max_turns = max_turns
         self.rng = random.Random(seed)
-        self.transition_model = transition_model or FittedNBackTransitionModel(windows)
+        self.transition_model = transition_model or SupervisedNBackTransitionModel(windows)
         self.windows_by_subject_and_difficulty: dict[tuple[str, int], list[ExperimentWindow]] = defaultdict(list)
         for window in windows:
             if window.task != "n_back":
