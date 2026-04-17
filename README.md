@@ -89,13 +89,13 @@ python3 /Users/anish/PERSONAL/emotiv_learn/scripts/plot_state_ablation.py \
 Run one live simulator workflow:
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/live_llm_training_loop.py \
+python3 scripts/live_llm_training_loop.py \
   --topic "gradient descent" \
   --user-id live_user_a \
   --turns 5 \
   --difficulty medium \
   --model gpt-5.4-mini \
-  --db-path /Users/anish/PERSONAL/emotiv_learn/artifacts/live_llm_engine.sqlite \
-  --output /Users/anish/PERSONAL/emotiv_learn/artifacts/live_llm_turns.json \
+  --db-path artifacts/live_llm_engine.sqlite \
+  --output artifacts/live_llm_turns.json \
   --eeg-mode synthetic
 ```

@@ -129,6 +129,7 @@ def run_live_training_loop(
                 length_target="short",
                 difficulty_target=difficulty,
                 include_checkpoint=bool(content_step["checkpoint"]),
+                learner_format_hint=_format_hint_from_hidden_state(student.hidden_state),
             )
         )
         tutor_message = client.complete_text(tutor_messages, max_tokens=900, temperature=0.35)
@@ -212,6 +213,7 @@ def run_live_training_loop(
             }
         )
 
+        content_mix = _content_mix_from_transition(transition)
         previous_interpreted = interpreted
         previous_student_response = student_response
         previous_reward = reward
@@ -224,6 +226,10 @@ def run_live_training_loop(
 
         print(
             f"turn={turn_index} action={action.action_id} "
+            f"mix={_dominant_content_mix(content_mix)} "
+            f"(d={content_mix['text_description']:.2f}, "
+            f"e={content_mix['text_examples']:.2f}, "
+            f"v={content_mix['visual']:.2f}) "
             f"followup={interpreted['followup_type']} reward={reward:.3f} "
             f"oracle_gain={transition.oracle_mastery_gain:.3f}"
         )
@@ -298,6 +304,28 @@ def _state_summary(interpreted: dict | None) -> str:
     return json.dumps(interpreted, indent=2)
 
 
+def _format_hint_from_hidden_state(hidden_state) -> str:
+    learning_style = getattr(hidden_state.knowledge_state, "learning_style", {})
+    text_description = float(learning_style.get("text_description", 0.5))
+    text_examples = float(learning_style.get("text_examples", 0.3))
+    visual = float(learning_style.get("visual", 0.2))
+
+    if visual >= max(text_description, text_examples):
+        return (
+            "Use scan-friendly structure: short labeled sections, bullets, numbered steps, "
+            "compact traces, and arrows. Avoid dense paragraphs."
+        )
+    if text_examples >= text_description:
+        return (
+            "Teach example-first: begin with a concrete worked example or numeric trace, "
+            "then connect it back to the concept."
+        )
+    return (
+        "Teach description-first: begin with a concise conceptual explanation, then add at most "
+        "one short example if needed."
+    )
+
+
 def _transition_to_interpreted(transition) -> dict[str, Any]:
     observables = transition.observable_signals
     return {
@@ -316,6 +344,19 @@ def _transition_to_interpreted(transition) -> dict[str, Any]:
             "curiosity_phrases": [],
         },
     }
+
+
+def _content_mix_from_transition(transition) -> dict[str, float]:
+    evaluation = transition.evaluation
+    return {
+        "text_description": float(evaluation.get("content_text_description", 0.0)),
+        "text_examples": float(evaluation.get("content_text_examples", 0.0)),
+        "visual": float(evaluation.get("content_visual", 0.0)),
+    }
+
+
+def _dominant_content_mix(content_mix: dict[str, float]) -> str:
+    return max(content_mix, key=content_mix.get)
 
 
 def _enforce_checkpoint_schedule(interpreted: dict[str, Any], checkpoint_expected: bool) -> dict[str, Any]:

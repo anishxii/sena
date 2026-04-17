@@ -80,6 +80,7 @@ class TutorPromptInput:
     length_target: str
     difficulty_target: str
     include_checkpoint: bool
+    learner_format_hint: str | None = None
     checkpoint_prompt: str | None = None
     checkpoint_options: list[str] | None = None
 
@@ -111,6 +112,18 @@ class InterpreterPromptInput:
 
 def build_tutor_messages(prompt_input: TutorPromptInput) -> list[dict[str, str]]:
     action_instruction = ACTION_INSTRUCTIONS[prompt_input.action_id]
+    learner_format_hint = prompt_input.learner_format_hint or "no special format preference"
+    visual_format_rules = ""
+    if "scan-friendly structure" in learner_format_hint.lower():
+        visual_format_rules = """
+Mandatory scan-friendly formatting contract:
+- do not write dense prose paragraphs
+- produce exactly 3 to 5 short sections
+- each section must start with a short label followed by a colon
+- include at least one bulleted list or numbered list
+- include at least one arrow trace such as a -> b -> c
+- keep each section to at most 2 short sentences or 3 short bullets
+"""
     user_prompt = f"""Topic:
 {prompt_input.topic}
 
@@ -134,9 +147,18 @@ Teaching strategy instructions:
 Content requirements:
 - length target: {prompt_input.length_target}
 - difficulty target: {prompt_input.difficulty_target}
+- learner format hint: {learner_format_hint}
 - include checkpoint: {prompt_input.include_checkpoint}
 - if checkpoint is true, end with one short comprehension question
 - if checkpoint_prompt is provided, use that checkpoint exactly and include the listed answer options exactly as written
+
+Formatting requirements:
+- obey the learner format hint if one is provided
+- for scan-friendly output, prefer short labeled sections, bullets, numbered steps, compact tables, and arrows like -> over dense paragraphs
+- for example-first output, use a concrete worked trace before abstract explanation
+- for description-first output, use a short conceptual explanation before examples
+- keep the structure plain text only; do not use markdown tables unless they are compact and readable
+{visual_format_rules}
 
 Checkpoint prompt override:
 {prompt_input.checkpoint_prompt}

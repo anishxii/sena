@@ -52,9 +52,30 @@ LEARNER_PROFILE = {
 }
 
 CHECKPOINT_RUBRICS = {
+    "loss_function": (
+        "A good answer says the loss function measures prediction error or mismatch between predictions and targets."
+    ),
+    "prediction_error": (
+        "A good answer says prediction error is the difference between the model's output and the target."
+    ),
+    "activation_function": (
+        "A good answer says activation functions add nonlinearity so neural networks can model more complex patterns."
+    ),
     "gradient_descent_update": (
         "A good answer says the update subtracts learning_rate multiplied by the gradient "
         "from the current parameter."
+    ),
+    "backpropagation": (
+        "A good answer says backpropagation moves gradients backward through layers so each parameter gets a learning signal."
+    ),
+    "momentum": (
+        "A good answer says momentum carries forward part of the previous update direction to smooth or accelerate optimization."
+    ),
+    "vanishing_gradient": (
+        "A good answer says vanishing gradients are very small gradient signals in deep networks that slow learning in earlier layers."
+    ),
+    "regularization": (
+        "A good answer says regularization adds a penalty or constraint that encourages simpler models and can improve generalization."
     ),
     "convergence": (
         "A good answer connects convergence to repeated updates that move parameters "
@@ -63,6 +84,36 @@ CHECKPOINT_RUBRICS = {
 }
 
 CHECKPOINT_ITEMS = {
+    "loss_function": {
+        "prompt": "What is the main role of the loss function during training?",
+        "options": [
+            "A. It measures how wrong the model's predictions are",
+            "B. It sets the model's learning rate automatically",
+            "C. It removes the need for gradients",
+            "D. It stores the model parameters",
+        ],
+        "correct_choice": "A",
+    },
+    "prediction_error": {
+        "prompt": "What is prediction error?",
+        "options": [
+            "A. The difference between the model output and the target",
+            "B. The total number of model parameters",
+            "C. The learning rate used by the optimizer",
+            "D. The hidden-layer activation function",
+        ],
+        "correct_choice": "A",
+    },
+    "activation_function": {
+        "prompt": "Why do neural networks use activation functions?",
+        "options": [
+            "A. To introduce nonlinearity into the network",
+            "B. To remove the need for backpropagation",
+            "C. To guarantee convergence in one step",
+            "D. To keep all neuron outputs identical",
+        ],
+        "correct_choice": "A",
+    },
     "gradient_descent_update": {
         "prompt": "Which expression best describes a gradient descent update?",
         "options": [
@@ -70,6 +121,46 @@ CHECKPOINT_ITEMS = {
             "B. parameter_new = parameter_old + learning_rate * gradient",
             "C. parameter_new = gradient - learning_rate",
             "D. parameter_new = parameter_old * gradient",
+        ],
+        "correct_choice": "A",
+    },
+    "backpropagation": {
+        "prompt": "What does backpropagation mainly do?",
+        "options": [
+            "A. It propagates gradients backward so each layer can update its parameters",
+            "B. It increases the learning rate after every update",
+            "C. It replaces the loss function with a fixed rule",
+            "D. It removes hidden layers from the network",
+        ],
+        "correct_choice": "A",
+    },
+    "momentum": {
+        "prompt": "What is momentum used for in optimization?",
+        "options": [
+            "A. To smooth and accelerate updates using past gradient directions",
+            "B. To remove gradients from the update rule entirely",
+            "C. To force the loss to zero immediately",
+            "D. To replace the learning rate with batch size",
+        ],
+        "correct_choice": "A",
+    },
+    "vanishing_gradient": {
+        "prompt": "What is a vanishing gradient problem?",
+        "options": [
+            "A. Gradients become very small, so earlier layers learn slowly",
+            "B. Gradients become infinite on every step",
+            "C. The optimizer stops computing loss",
+            "D. The model deletes hidden layers during training",
+        ],
+        "correct_choice": "A",
+    },
+    "regularization": {
+        "prompt": "What is the main purpose of regularization?",
+        "options": [
+            "A. To encourage simpler models and improve generalization",
+            "B. To make the learning rate always increase",
+            "C. To guarantee zero training loss instantly",
+            "D. To prevent gradients from being computed",
         ],
         "correct_choice": "A",
     },
@@ -228,6 +319,7 @@ def run_policy_mode_live(
             )
             tutor_message = _generate_tutor_message(
                 client=client,
+                user_id=user_id,
                 concept_id=concept_id,
                 action_id=action_id,
                 checkpoint_expected=checkpoint_expected,
@@ -365,8 +457,13 @@ def run_policy_mode_live(
                     "update_trace": update_trace,
                 },
             )
+            content_mix = _content_mix_from_transition(transition)
             print(
                 f"{policy_mode} turn={turn_index} user={user_id} action={action_id} "
+                f"mix={_dominant_content_mix(content_mix)} "
+                f"(d={content_mix['text_description']:.2f}, "
+                f"e={content_mix['text_examples']:.2f}, "
+                f"v={content_mix['visual']:.2f}) "
                 f"followup={transition.sampled_response_type} reward={reward:.3f} "
                 f"oracle_gain={transition.oracle_mastery_gain:.3f}"
             )
@@ -471,6 +568,7 @@ def _enforce_checkpoint_schedule(interpreted: dict, checkpoint_expected: bool) -
 def _generate_tutor_message(
     *,
     client: OpenAIChatClient,
+    user_id: str,
     concept_id: str,
     action_id: str,
     checkpoint_expected: bool,
@@ -489,6 +587,7 @@ def _generate_tutor_message(
             length_target="short",
             difficulty_target="medium",
             include_checkpoint=checkpoint_expected,
+            learner_format_hint=_learner_format_hint(user_id),
             checkpoint_prompt=None if checkpoint_item is None else checkpoint_item["prompt"],
             checkpoint_options=None if checkpoint_item is None else checkpoint_item["options"],
         )
@@ -526,6 +625,30 @@ def _generate_student_response(
         student_response["checkpoint_answer"] = transition.checkpoint_answer
     student_response["checkpoint_choice"] = checkpoint_choice
     return student_response
+
+
+def _learner_format_hint(user_id: str) -> str:
+    profile = USER_PROFILES[user_id]
+    learning_style = profile.get("learning_style", {})
+    text_description = float(learning_style.get("text_description", 0.5))
+    text_examples = float(learning_style.get("text_examples", 0.3))
+    visual = float(learning_style.get("visual", 0.2))
+
+    if visual >= max(text_description, text_examples):
+        return (
+            "Use scan-friendly structure. This is a hard formatting requirement: no dense paragraphs. "
+            "Write exactly 3 to 5 short labeled sections, include at least one bulleted or numbered list, "
+            "and include at least one arrow trace like a -> b -> c."
+        )
+    if text_examples >= text_description:
+        return (
+            "Teach example-first: begin with a concrete worked example or numeric trace, "
+            "then connect it back to the concept in one short explanation."
+        )
+    return (
+        "Teach description-first: begin with a concise conceptual explanation, then add at most "
+        "one short example if needed."
+    )
 
 
 def _generate_interpreted_outcome(
@@ -682,6 +805,19 @@ def _summarize_user(user_id: str, tracker: dict, turns: int) -> dict:
         "followups": dict(tracker["followups"]),
         "action_counts": {action.action_id: tracker["action_counts"][action.action_id] for action in ACTION_BANK},
     }
+
+
+def _content_mix_from_transition(transition) -> dict[str, float]:
+    evaluation = transition.evaluation
+    return {
+        "text_description": float(evaluation.get("content_text_description", 0.0)),
+        "text_examples": float(evaluation.get("content_text_examples", 0.0)),
+        "visual": float(evaluation.get("content_visual", 0.0)),
+    }
+
+
+def _dominant_content_mix(content_mix: dict[str, float]) -> str:
+    return max(content_mix, key=content_mix.get)
 
 
 def summarize_policy(rows: list[dict]) -> dict:

@@ -5,6 +5,7 @@ import {
   formatNumber,
   parseJsonl,
   policyOrder,
+  policyCounts,
   summarizeTurns,
   turnsFromEvents,
   uniqueValues,
@@ -24,6 +25,8 @@ export default function App() {
   const userFilteredTurns = useMemo(() => userTurns(turns, selectedUser), [turns, selectedUser]);
   const summary = useMemo(() => summarizeTurns(userFilteredTurns), [userFilteredTurns]);
   const users = useMemo(() => uniqueValues(turns, 'user_id'), [turns]);
+  const actionsByPolicy = useMemo(() => policyCounts(userFilteredTurns, 'action_id'), [userFilteredTurns]);
+  const contentMixByPolicy = useMemo(() => contentMixCounts(userFilteredTurns), [userFilteredTurns]);
   const selectedTurn = useMemo(() => {
     if (!selectedTurnId) return userFilteredTurns.at(-1) ?? null;
     return userFilteredTurns.find((turn) => turnId(turn) === selectedTurnId) ?? userFilteredTurns.at(-1) ?? null;
@@ -121,6 +124,12 @@ export default function App() {
           <Panel title="Policy Snapshot" quiet>
             <PolicyTable summary={summary} turns={userFilteredTurns} />
           </Panel>
+          <Panel title="Action Mix">
+            <Distribution counts={actionsByPolicy} />
+          </Panel>
+          <Panel title="Content Mix">
+            <Distribution counts={contentMixByPolicy} />
+          </Panel>
           <Panel title="Completed Turns">
             <TurnList turns={userFilteredTurns} selectedId={selectedTurn ? turnId(selectedTurn) : null} onSelect={setSelectedTurnId} />
           </Panel>
@@ -190,6 +199,39 @@ function PolicyTable({ summary, turns }: { summary: ReturnType<typeof summarizeT
   );
 }
 
+function Distribution({ counts }: { counts: Record<string, Record<string, number>> }) {
+  const policies = policyOrder.filter((policy) => counts[policy] && Object.keys(counts[policy]).length > 0);
+  if (policies.length === 0) return <EmptyState />;
+
+  return (
+    <div className="table">
+      {policies.map((policy) => {
+        const entries = Object.entries(counts[policy]).sort((a, b) => b[1] - a[1]);
+        const total = entries.reduce((sum, [, value]) => sum + value, 0);
+        return (
+          <div key={policy} className="distributionBlock">
+            <div className="tableRow head">
+              <span>{policy}</span>
+              <span>{total} turns</span>
+            </div>
+            {entries.map(([label, value]) => (
+              <div className="tableRow" key={`${policy}:${label}`}>
+                <span className="mono">{label}</span>
+                <span>{value}</span>
+                <div
+                  className="bar"
+                  style={{ '--value': String(total === 0 ? 0 : value / total) } as React.CSSProperties}
+                />
+                <small>{Math.round((total === 0 ? 0 : value / total) * 100)}%</small>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TurnList({
   turns,
   selectedId,
@@ -233,6 +275,28 @@ function TurnDetail({ turn }: { turn: TurnCompletedPayload }) {
         <Metric label="workload" value={formatNumber(getWorkload(turn))} />
         <Metric label="engagement" value={formatNumber(getEngagement(turn))} />
       </div>
+      <div className="detailGrid">
+        <Metric label="dominant mix" value={dominantContentMix(turn)} mono />
+        <Metric label="description" value={formatNumber(getContentMix(turn).text_description)} />
+        <Metric label="examples" value={formatNumber(getContentMix(turn).text_examples)} />
+        <Metric label="visual" value={formatNumber(getContentMix(turn).visual)} />
+      </div>
+      <article>
+        <h3>Learner Style</h3>
+        <pre>{JSON.stringify(getLearningStyle(turn), null, 2)}</pre>
+      </article>
+      <article>
+        <h3>Hidden Knowledge State</h3>
+        <pre>{JSON.stringify(getHiddenKnowledgeState(turn), null, 2)}</pre>
+      </article>
+      <article>
+        <h3>Claims Understood</h3>
+        <pre>{JSON.stringify(getClaimsUnderstood(turn), null, 2)}</pre>
+      </article>
+      <article>
+        <h3>Hidden Neuro State</h3>
+        <pre>{JSON.stringify(getHiddenNeuroState(turn), null, 2)}</pre>
+      </article>
       <article>
         <h3>Tutor</h3>
         <p>{turn.tutor_message}</p>
@@ -245,6 +309,7 @@ function TurnDetail({ turn }: { turn: TurnCompletedPayload }) {
         <h3>Transition</h3>
         <pre>{JSON.stringify({
           evaluation: transition.evaluation,
+          content_mix: getContentMix(turn),
           response_type_probs: transition.response_type_probs,
           observable_signals: transition.observable_signals,
           update_trace: turn.update_trace,
@@ -425,6 +490,64 @@ function getEngagement(turn: TurnCompletedPayload): number {
   const signals = turn.student_transition?.observable_signals as Record<string, unknown> | undefined;
   const value = signals?.engagement_score;
   return typeof value === 'number' ? value : 0;
+}
+
+function getContentMix(turn: TurnCompletedPayload): {
+  text_description: number;
+  text_examples: number;
+  visual: number;
+} {
+  const evaluation = turn.student_transition?.evaluation as Record<string, unknown> | undefined;
+  return {
+    text_description: typeof evaluation?.content_text_description === 'number' ? evaluation.content_text_description : 0,
+    text_examples: typeof evaluation?.content_text_examples === 'number' ? evaluation.content_text_examples : 0,
+    visual: typeof evaluation?.content_visual === 'number' ? evaluation.content_visual : 0,
+  };
+}
+
+function dominantContentMix(turn: TurnCompletedPayload): string {
+  const mix = getContentMix(turn);
+  const entries = Object.entries(mix).sort((a, b) => b[1] - a[1]);
+  return entries[0]?.[0] ?? 'unknown';
+}
+
+function getLearningStyle(turn: TurnCompletedPayload): Record<string, number> {
+  const hiddenAfter = turn.student_transition?.hidden_state_after as Record<string, unknown> | undefined;
+  const knowledgeState = hiddenAfter?.knowledge_state as Record<string, unknown> | undefined;
+  const learningStyle = knowledgeState?.learning_style as Record<string, unknown> | undefined;
+  return {
+    text_description: typeof learningStyle?.text_description === 'number' ? learningStyle.text_description : 0,
+    text_examples: typeof learningStyle?.text_examples === 'number' ? learningStyle.text_examples : 0,
+    visual: typeof learningStyle?.visual === 'number' ? learningStyle.visual : 0,
+  };
+}
+
+function getHiddenKnowledgeState(turn: TurnCompletedPayload): Record<string, unknown> {
+  const hiddenAfter = turn.student_transition?.hidden_state_after as Record<string, unknown> | undefined;
+  const knowledgeState = hiddenAfter?.knowledge_state as Record<string, unknown> | undefined;
+  return knowledgeState ?? {};
+}
+
+function getClaimsUnderstood(turn: TurnCompletedPayload): Record<string, unknown> {
+  const knowledgeState = getHiddenKnowledgeState(turn);
+  const claims = knowledgeState.claims_understood as Record<string, unknown> | undefined;
+  return claims ?? {};
+}
+
+function getHiddenNeuroState(turn: TurnCompletedPayload): Record<string, unknown> {
+  const hiddenAfter = turn.student_transition?.hidden_state_after as Record<string, unknown> | undefined;
+  const neuroState = hiddenAfter?.neuro_state as Record<string, unknown> | undefined;
+  return neuroState ?? {};
+}
+
+function contentMixCounts(turns: TurnCompletedPayload[]): Record<string, Record<string, number>> {
+  const counts: Record<string, Record<string, number>> = {};
+  for (const turn of turns) {
+    counts[turn.policy_mode] ??= {};
+    const label = dominantContentMix(turn);
+    counts[turn.policy_mode][label] = (counts[turn.policy_mode][label] ?? 0) + 1;
+  }
+  return counts;
 }
 
 function average(values: number[]): number {

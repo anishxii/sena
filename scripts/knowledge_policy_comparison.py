@@ -23,9 +23,26 @@ from emotiv_learn.student_model import (
 
 CONTENT_STEPS = [
     ("gradient", False),
+    ("loss_function", False),
+    ("prediction_error", True),
+    ("parameter", False),
+    ("weight_initialization", False),
+    ("activation_function", True),
+    ("neuron_output", False),
+    ("partial_derivative", False),
     ("learning_rate", False),
     ("gradient_descent_update", True),
+    ("batch_size", False),
+    ("stochastic_gradient", False),
+    ("chain_rule", False),
+    ("backpropagation", True),
+    ("hidden_layer_credit_assignment", False),
+    ("momentum", True),
     ("overshooting", False),
+    ("vanishing_gradient", True),
+    ("local_minimum", False),
+    ("curvature", False),
+    ("regularization", True),
     ("convergence", True),
 ]
 
@@ -34,9 +51,14 @@ USER_PROFILES = {
     "advanced_concise": {
         "mastery": {
             "gradient": 0.80,
+            "loss_function": 0.74,
+            "parameter": 0.72,
             "learning_rate": 0.68,
             "gradient_descent_update": 0.62,
+            "chain_rule": 0.56,
+            "backpropagation": 0.54,
             "overshooting": 0.60,
+            "local_minimum": 0.58,
             "convergence": 0.58,
         },
         "confidence": 0.82,
@@ -48,13 +70,23 @@ USER_PROFILES = {
             "worked_examples": 0.35,
             "accessible": 0.35,
         },
+        "learning_style": {
+            "text_description": 0.80,
+            "text_examples": 0.20,
+            "visual": 0.00,
+        },
     },
     "example_builder": {
         "mastery": {
             "gradient": 0.42,
+            "loss_function": 0.35,
+            "parameter": 0.31,
             "learning_rate": 0.32,
             "gradient_descent_update": 0.24,
+            "chain_rule": 0.18,
+            "backpropagation": 0.16,
             "overshooting": 0.28,
+            "local_minimum": 0.22,
             "convergence": 0.25,
         },
         "confidence": 0.45,
@@ -66,13 +98,23 @@ USER_PROFILES = {
             "accessible": 0.70,
             "technical_depth": 0.25,
         },
+        "learning_style": {
+            "text_description": 0.20,
+            "text_examples": 0.50,
+            "visual": 0.30,
+        },
     },
     "visual_scanner": {
         "mastery": {
             "gradient": 0.55,
+            "loss_function": 0.47,
+            "parameter": 0.44,
             "learning_rate": 0.48,
             "gradient_descent_update": 0.40,
+            "chain_rule": 0.34,
+            "backpropagation": 0.30,
             "overshooting": 0.43,
+            "local_minimum": 0.36,
             "convergence": 0.38,
         },
         "confidence": 0.58,
@@ -83,6 +125,40 @@ USER_PROFILES = {
             "concise": 0.82,
             "worked_examples": 0.42,
             "technical_depth": 0.45,
+        },
+        "learning_style": {
+            "text_description": 0.30,
+            "text_examples": 0.25,
+            "visual": 0.45,
+        },
+    },
+    "analogy_mapper": {
+        "mastery": {
+            "gradient": 0.50,
+            "loss_function": 0.43,
+            "parameter": 0.40,
+            "learning_rate": 0.41,
+            "gradient_descent_update": 0.33,
+            "chain_rule": 0.26,
+            "backpropagation": 0.24,
+            "overshooting": 0.36,
+            "local_minimum": 0.30,
+            "convergence": 0.31,
+        },
+        "confidence": 0.54,
+        "curiosity": 0.64,
+        "fatigue": 0.18,
+        "preferred_style": {
+            "analogies": 0.98,
+            "accessible": 0.82,
+            "worked_examples": 0.44,
+            "technical_depth": 0.24,
+            "concise": 0.58,
+        },
+        "learning_style": {
+            "text_description": 0.08,
+            "text_examples": 0.62,
+            "visual": 0.30,
         },
     },
 }
@@ -233,13 +309,19 @@ def _initial_state_for_user(user_id: str) -> HiddenKnowledgeState:
     profile = USER_PROFILES[user_id]
     preferred_style = dict(base.knowledge_state.preferred_style)
     preferred_style.update(profile["preferred_style"])
+    learning_style = dict(base.knowledge_state.learning_style)
+    learning_style.update(profile.get("learning_style", {}))
+    concept_mastery = dict(base.knowledge_state.concept_mastery)
+    concept_mastery.update(profile["mastery"])
     return HiddenKnowledgeState(
         knowledge_state=KnowledgeState(
-            concept_mastery=profile["mastery"],
+            concept_mastery=concept_mastery,
+            claims_understood={key: list(value) for key, value in base.knowledge_state.claims_understood.items()},
             misconceptions=dict(base.knowledge_state.misconceptions),
             confidence=profile["confidence"],
             curiosity=profile["curiosity"],
             preferred_style=preferred_style,
+            learning_style=learning_style,
         ),
         neuro_state=NeuroState(
             workload=min(1.0, max(0.0, 0.18 + 0.55 * profile["fatigue"])),
