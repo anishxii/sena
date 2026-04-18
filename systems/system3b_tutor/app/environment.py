@@ -1,8 +1,9 @@
 class TutorEnvironment:
-    """Placeholder for the System 3B tutor environment.
+    """Placeholder for a future explicit System 2-backed tutor environment.
 
-    Concrete tutor loop code should migrate here from the legacy `emotiv_learn`
-    package as it is adapted to the new System 2 SDK interfaces.
+    The current runnable tutor logic lives in `systems.system3b_tutor.runs`.
+    This module remains as the future home for a concrete app-layer adapter
+    that implements the generic System 2 contracts directly.
     """
 
     pass

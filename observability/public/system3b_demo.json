@@ -1,0 +1,703 @@
+{
+  "system": "3.1",
+  "description": "Two already-personalized tutor sessions shown side by side.",
+  "turns_per_user": 3,
+  "seed": 17,
+  "initial_prompt": "I understand that neural networks learn from data, but I want to understand how gradient descent and backpropagation actually update the model.",
+  "users": {
+    "User A": {
+      "profile_id": "step_example_learner",
+      "profile": "Needs concrete worked traces and sequential steps before the abstraction feels reliable.",
+      "hidden_profile": {
+        "learning_profile": "Learns best from concrete worked traces and step-by-step procedural explanations.",
+        "content_mastery": "Understands the high-level idea of neural-network training but still needs explicit examples to connect gradients, loss, and parameter updates.",
+        "note": "This profile is hidden from the live model. The application has already been personalized on past interactions with this user."
+      },
+      "turns": [
+        {
+          "user_id": "step_example_learner",
+          "timestamp": 1,
+          "topic": "gradient descent",
+          "concept_id": "gradient",
+          "profile_name": "step_example_learner",
+          "features": {
+            "mastery_current": 0.4,
+            "goal_progress": 0.0,
+            "confidence": 0.42,
+            "curiosity": 0.6,
+            "cognitive_load": 0.42,
+            "concept_difficulty": 0.35,
+            "pref_no_change": 0.14,
+            "pref_simplify": 0.64,
+            "pref_deepen": 0.16,
+            "pref_summarize": 0.34,
+            "pref_highlight_key_points": 0.48,
+            "pref_worked_example": 0.98,
+            "pref_analogy": 0.42,
+            "pref_step_by_step": 0.96
+          },
+          "action_scores": {
+            "no_change": 0.09,
+            "simplify": 0.59,
+            "deepen": 0.11,
+            "summarize": 0.29,
+            "highlight_key_points": 0.43,
+            "worked_example": 1.23,
+            "analogy": 0.37,
+            "step_by_step": 0.91
+          },
+          "selected_action": "worked_example",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.76,
+              "challenge_level": 0.46,
+              "structure_level": 0.7,
+              "teaching_style_note": "Teach through a concrete numeric or procedural example."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "gradient",
+              "tutor_message": "Let\u2019s pin this down with a concrete update. Imagine a weight is 4.0, the model makes a prediction, and the loss tells us the output is too high. If the gradient on that weight is 0.5 and the learning rate is 0.1, the new weight becomes 3.95. The important point is that gradient is the signal telling us both which way to move and how strongly the current weight contributed to the error.",
+              "action_label": "worked example"
+            }
+          },
+          "outcome": {
+            "profile_name": "step_example_learner",
+            "topic": "gradient descent",
+            "concept_id": "gradient",
+            "tutor_message": "Let\u2019s pin this down with a concrete update. Imagine a weight is 4.0, the model makes a prediction, and the loss tells us the output is too high. If the gradient on that weight is 0.5 and the learning rate is 0.1, the new weight becomes 3.95. The important point is that gradient is the signal telling us both which way to move and how strongly the current weight contributed to the error.",
+            "student_message": "I\u2019m following this much better now. I can see where gradient shows up in the sequence, but I\u2019d still want one more full pass before I\u2019d be comfortable explaining it on my own.",
+            "mastery_before": 0.4,
+            "mastery_after": 0.5694600000000001,
+            "learning_gain": 0.16946,
+            "confusion": 0.10585919999999993,
+            "engagement": 0.7407999999999999,
+            "confidence": 0.47911688,
+            "curiosity": 0.69950704,
+            "cognitive_load": 0.18180000000000002,
+            "action_preference": 0.98,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": false,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [],
+              "learning_rate": [],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.0
+          },
+          "interpreted": {
+            "learning_gain": 0.16946,
+            "confusion": 0.10585919999999993,
+            "engagement": 0.7407999999999999,
+            "mastery_after": 0.5694600000000001,
+            "goal_progress": 0.0,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": false,
+            "action_preference": 0.98
+          },
+          "reward": 0.6715832800000001,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.152514,
+              "goal_progress": 0.0,
+              "action_fit": 0.245,
+              "engagement": 0.11111999999999998,
+              "confusion_penalty": -0.037050719999999975,
+              "advance_bonus": 0.0,
+              "checkpoint_bonus": 0.2
+            },
+            "total_reward": 0.6715832800000001
+          }
+        },
+        {
+          "user_id": "step_example_learner",
+          "timestamp": 2,
+          "topic": "gradient descent",
+          "concept_id": "gradient",
+          "profile_name": "step_example_learner",
+          "features": {
+            "mastery_current": 0.5694600000000001,
+            "goal_progress": 0.0,
+            "confidence": 0.47911688,
+            "curiosity": 0.69950704,
+            "cognitive_load": 0.18180000000000002,
+            "concept_difficulty": 0.35,
+            "pref_no_change": 0.14,
+            "pref_simplify": 0.64,
+            "pref_deepen": 0.16,
+            "pref_summarize": 0.34,
+            "pref_highlight_key_points": 0.48,
+            "pref_worked_example": 0.98,
+            "pref_analogy": 0.42,
+            "pref_step_by_step": 0.96
+          },
+          "action_scores": {
+            "no_change": 0.09,
+            "simplify": 0.59,
+            "deepen": 0.11,
+            "summarize": 0.29,
+            "highlight_key_points": 0.43,
+            "worked_example": 0.93,
+            "analogy": 0.37,
+            "step_by_step": 1.21
+          },
+          "selected_action": "step_by_step",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.8,
+              "challenge_level": 0.42,
+              "structure_level": 0.95,
+              "teaching_style_note": "Break the concept into sequential steps or stages."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "gradient",
+              "tutor_message": "Here is the sequence. First compute the prediction error. Then use that error to calculate gradient. Next plug that value into the update rule. Finally compare the old parameter to the new one and ask whether the move should lower the loss on the next pass.",
+              "action_label": "step by step"
+            }
+          },
+          "outcome": {
+            "profile_name": "step_example_learner",
+            "topic": "gradient descent",
+            "concept_id": "gradient",
+            "tutor_message": "Here is the sequence. First compute the prediction error. Then use that error to calculate gradient. Next plug that value into the update rule. Finally compare the old parameter to the new one and ask whether the move should lower the loss on the next pass.",
+            "student_message": "That clicked. I can now explain where gradient enters the update and why the parameter actually changes after the model sees an error.",
+            "mastery_before": 0.5694600000000001,
+            "mastery_after": 0.7062781481200641,
+            "learning_gain": 0.13681814812006396,
+            "confusion": 0.0009104889023692775,
+            "engagement": 0.8054952672,
+            "confidence": 0.5420530977713746,
+            "curiosity": 0.7990615155548815,
+            "cognitive_load": 0.05790000000000001,
+            "action_preference": 0.96,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": true,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [],
+              "learning_rate": [],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.125
+          },
+          "interpreted": {
+            "learning_gain": 0.13681814812006396,
+            "confusion": 0.0009104889023692775,
+            "engagement": 0.8054952672,
+            "mastery_after": 0.7062781481200641,
+            "goal_progress": 0.125,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": true,
+            "action_preference": 0.96
+          },
+          "reward": 0.9773919522722283,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.12313633330805757,
+              "goal_progress": 0.04375,
+              "action_fit": 0.24,
+              "engagement": 0.12082429008,
+              "confusion_penalty": -0.0003186711158292471,
+              "advance_bonus": 0.25,
+              "checkpoint_bonus": 0.2
+            },
+            "total_reward": 0.9773919522722283
+          }
+        },
+        {
+          "user_id": "step_example_learner",
+          "timestamp": 3,
+          "topic": "gradient descent",
+          "concept_id": "loss_function",
+          "profile_name": "step_example_learner",
+          "features": {
+            "mastery_current": 0.36,
+            "goal_progress": 0.125,
+            "confidence": 0.5420530977713746,
+            "curiosity": 0.7990615155548815,
+            "cognitive_load": 0.05790000000000001,
+            "concept_difficulty": 0.32,
+            "pref_no_change": 0.14,
+            "pref_simplify": 0.64,
+            "pref_deepen": 0.16,
+            "pref_summarize": 0.34,
+            "pref_highlight_key_points": 0.48,
+            "pref_worked_example": 0.98,
+            "pref_analogy": 0.42,
+            "pref_step_by_step": 0.96
+          },
+          "action_scores": {
+            "no_change": 0.09,
+            "simplify": 0.59,
+            "deepen": 0.11,
+            "summarize": 0.29,
+            "highlight_key_points": 0.43,
+            "worked_example": 1.23,
+            "analogy": 0.37,
+            "step_by_step": 0.91
+          },
+          "selected_action": "worked_example",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.76,
+              "challenge_level": 0.46,
+              "structure_level": 0.7,
+              "teaching_style_note": "Teach through a concrete numeric or procedural example."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "loss_function",
+              "tutor_message": "Let\u2019s pin this down with a concrete update. Imagine a weight is 4.0, the model makes a prediction, and the loss tells us the output is too high. If the gradient on that weight is 0.5 and the learning rate is 0.1, the new weight becomes 3.95. The important point is that loss function is the signal telling us both which way to move and how strongly the current weight contributed to the error.",
+              "action_label": "worked example"
+            }
+          },
+          "outcome": {
+            "profile_name": "step_example_learner",
+            "topic": "gradient descent",
+            "concept_id": "loss_function",
+            "tutor_message": "Let\u2019s pin this down with a concrete update. Imagine a weight is 4.0, the model makes a prediction, and the loss tells us the output is too high. If the gradient on that weight is 0.5 and the learning rate is 0.1, the new weight becomes 3.95. The important point is that loss function is the signal telling us both which way to move and how strongly the current weight contributed to the error.",
+            "student_message": "I\u2019m following this much better now. I can see where loss function shows up in the sequence, but I\u2019d still want one more full pass before I\u2019d be comfortable explaining it on my own.",
+            "mastery_before": 0.36,
+            "mastery_after": 0.560104614798205,
+            "learning_gain": 0.20010461479820496,
+            "confusion": 0.04517178489686163,
+            "engagement": 0.8200830727998786,
+            "confidence": 0.6127547499453654,
+            "curiosity": 0.9016029263100384,
+            "cognitive_load": 0.0,
+            "action_preference": 0.98,
+            "checkpoint_correct": null,
+            "advanced_to_next_concept": false,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [
+                "The loss function measures prediction error.",
+                "Training tries to reduce loss by updating parameters."
+              ],
+              "learning_rate": [],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.125
+          },
+          "interpreted": {
+            "learning_gain": 0.20010461479820496,
+            "confusion": 0.04517178489686163,
+            "engagement": 0.8200830727998786,
+            "mastery_after": 0.560104614798205,
+            "goal_progress": 0.125,
+            "checkpoint_correct": null,
+            "advanced_to_next_concept": false,
+            "action_preference": 0.98
+          },
+          "reward": 0.5760464895244647,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.18009415331838446,
+              "goal_progress": 0.04375,
+              "action_fit": 0.245,
+              "engagement": 0.12301246091998178,
+              "confusion_penalty": -0.01581012471390157,
+              "advance_bonus": 0.0,
+              "checkpoint_bonus": 0.0
+            },
+            "total_reward": 0.5760464895244647
+          }
+        }
+      ]
+    },
+    "User B": {
+      "profile_id": "deep_dive_learner",
+      "profile": "Wants mechanism first: why the signal exists, how it propagates, and what changes downstream.",
+      "hidden_profile": {
+        "learning_profile": "Learns best from deeper mechanism-first explanations that expose causal structure and downstream consequences.",
+        "content_mastery": "Already knows the surface definition of gradients and loss, but still wants a clearer account of how those quantities propagate through optimization.",
+        "note": "This profile is hidden from the live model. The application has already been personalized on past interactions with this user."
+      },
+      "turns": [
+        {
+          "user_id": "deep_dive_learner",
+          "timestamp": 1,
+          "topic": "gradient descent",
+          "concept_id": "gradient",
+          "profile_name": "deep_dive_learner",
+          "features": {
+            "mastery_current": 0.62,
+            "goal_progress": 0.125,
+            "confidence": 0.66,
+            "curiosity": 0.74,
+            "cognitive_load": 0.3,
+            "concept_difficulty": 0.35,
+            "pref_no_change": 0.16,
+            "pref_simplify": 0.26,
+            "pref_deepen": 0.98,
+            "pref_summarize": 0.4,
+            "pref_highlight_key_points": 0.38,
+            "pref_worked_example": 0.22,
+            "pref_analogy": 0.34,
+            "pref_step_by_step": 0.44
+          },
+          "action_scores": {
+            "no_change": 0.11,
+            "simplify": 0.21,
+            "deepen": 1.23,
+            "summarize": 0.35,
+            "highlight_key_points": 0.33,
+            "worked_example": 0.17,
+            "analogy": 0.29,
+            "step_by_step": 0.39
+          },
+          "selected_action": "deepen",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.32,
+              "challenge_level": 0.92,
+              "structure_level": 0.34,
+              "teaching_style_note": "Push into mechanism, caveats, and more technical reasoning."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "gradient",
+              "tutor_message": "Start from the mechanism. gradient matters because it is part of the chain that turns prediction error into a parameter change. When the loss changes, that change has to be attributed back through the model. gradient tells us where sensitivity lives in that chain and how strongly a local change will affect the objective.",
+              "action_label": "deepen"
+            }
+          },
+          "outcome": {
+            "profile_name": "deep_dive_learner",
+            "topic": "gradient descent",
+            "concept_id": "gradient",
+            "tutor_message": "Start from the mechanism. gradient matters because it is part of the chain that turns prediction error into a parameter change. When the loss changes, that change has to be attributed back through the model. gradient tells us where sensitivity lives in that chain and how strongly a local change will affect the objective.",
+            "student_message": "That is much clearer. I can now explain not just what gradient is, but why it has to exist in the optimization process and what information would be lost without it.",
+            "mastery_before": 0.62,
+            "mastery_after": 0.726218,
+            "learning_gain": 0.106218,
+            "confusion": 0.08101535999999998,
+            "engagement": 0.7444,
+            "confidence": 0.7102177040000001,
+            "curiosity": 0.8867492319999999,
+            "cognitive_load": 0.3506,
+            "action_preference": 0.98,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": true,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [],
+              "learning_rate": [],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.125
+          },
+          "interpreted": {
+            "learning_gain": 0.106218,
+            "confusion": 0.08101535999999998,
+            "engagement": 0.7444,
+            "mastery_after": 0.726218,
+            "goal_progress": 0.125,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": true,
+            "action_preference": 0.98
+          },
+          "reward": 0.9176508239999999,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.0955962,
+              "goal_progress": 0.04375,
+              "action_fit": 0.245,
+              "engagement": 0.11166,
+              "confusion_penalty": -0.02835537599999999,
+              "advance_bonus": 0.25,
+              "checkpoint_bonus": 0.2
+            },
+            "total_reward": 0.9176508239999999
+          }
+        },
+        {
+          "user_id": "deep_dive_learner",
+          "timestamp": 2,
+          "topic": "gradient descent",
+          "concept_id": "loss_function",
+          "profile_name": "deep_dive_learner",
+          "features": {
+            "mastery_current": 0.57,
+            "goal_progress": 0.125,
+            "confidence": 0.7102177040000001,
+            "curiosity": 0.8867492319999999,
+            "cognitive_load": 0.3506,
+            "concept_difficulty": 0.32,
+            "pref_no_change": 0.16,
+            "pref_simplify": 0.26,
+            "pref_deepen": 0.98,
+            "pref_summarize": 0.4,
+            "pref_highlight_key_points": 0.38,
+            "pref_worked_example": 0.22,
+            "pref_analogy": 0.34,
+            "pref_step_by_step": 0.44
+          },
+          "action_scores": {
+            "no_change": 0.11,
+            "simplify": 0.21,
+            "deepen": 1.23,
+            "summarize": 0.35,
+            "highlight_key_points": 0.33,
+            "worked_example": 0.17,
+            "analogy": 0.29,
+            "step_by_step": 0.39
+          },
+          "selected_action": "deepen",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.32,
+              "challenge_level": 0.92,
+              "structure_level": 0.34,
+              "teaching_style_note": "Push into mechanism, caveats, and more technical reasoning."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "loss_function",
+              "tutor_message": "Start from the mechanism. loss function matters because it is part of the chain that turns prediction error into a parameter change. When the loss changes, that change has to be attributed back through the model. loss function tells us where sensitivity lives in that chain and how strongly a local change will affect the objective.",
+              "action_label": "deepen"
+            }
+          },
+          "outcome": {
+            "profile_name": "deep_dive_learner",
+            "topic": "gradient descent",
+            "concept_id": "loss_function",
+            "tutor_message": "Start from the mechanism. loss function matters because it is part of the chain that turns prediction error into a parameter change. When the loss changes, that change has to be attributed back through the model. loss function tells us where sensitivity lives in that chain and how strongly a local change will affect the objective.",
+            "student_message": "That is much clearer. I can now explain not just what loss function is, but why it has to exist in the optimization process and what information would be lost without it.",
+            "mastery_before": 0.57,
+            "mastery_after": 0.6896366067904,
+            "learning_gain": 0.1196366067904,
+            "confusion": 0.10768242874060802,
+            "engagement": 0.76474286176,
+            "confidence": 0.7601840503482113,
+            "curiosity": 1.0,
+            "cognitive_load": 0.37050000000000005,
+            "action_preference": 0.98,
+            "checkpoint_correct": null,
+            "advanced_to_next_concept": true,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [
+                "The loss function measures prediction error.",
+                "Training tries to reduce loss by updating parameters."
+              ],
+              "learning_rate": [],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.25
+          },
+          "interpreted": {
+            "learning_gain": 0.1196366067904,
+            "confusion": 0.10768242874060802,
+            "engagement": 0.76474286176,
+            "mastery_after": 0.6896366067904,
+            "goal_progress": 0.25,
+            "checkpoint_correct": null,
+            "advanced_to_next_concept": true,
+            "action_preference": 0.98
+          },
+          "reward": 0.7671955253161471,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.10767294611136001,
+              "goal_progress": 0.0875,
+              "action_fit": 0.245,
+              "engagement": 0.11471142926399999,
+              "confusion_penalty": -0.037688850059212804,
+              "advance_bonus": 0.25,
+              "checkpoint_bonus": 0.0
+            },
+            "total_reward": 0.7671955253161471
+          }
+        },
+        {
+          "user_id": "deep_dive_learner",
+          "timestamp": 3,
+          "topic": "gradient descent",
+          "concept_id": "learning_rate",
+          "profile_name": "deep_dive_learner",
+          "features": {
+            "mastery_current": 0.5,
+            "goal_progress": 0.25,
+            "confidence": 0.7601840503482113,
+            "curiosity": 1.0,
+            "cognitive_load": 0.37050000000000005,
+            "concept_difficulty": 0.42,
+            "pref_no_change": 0.16,
+            "pref_simplify": 0.26,
+            "pref_deepen": 0.98,
+            "pref_summarize": 0.4,
+            "pref_highlight_key_points": 0.38,
+            "pref_worked_example": 0.22,
+            "pref_analogy": 0.34,
+            "pref_step_by_step": 0.44
+          },
+          "action_scores": {
+            "no_change": 0.11,
+            "simplify": 0.21,
+            "deepen": 0.93,
+            "summarize": 0.65,
+            "highlight_key_points": 0.33,
+            "worked_example": 0.17,
+            "analogy": 0.29,
+            "step_by_step": 0.39
+          },
+          "selected_action": "summarize",
+          "policy_info": {
+            "policy_type": "scripted_demo",
+            "exploration": false,
+            "metadata": {
+              "demo_script": true
+            }
+          },
+          "interaction_effect": {
+            "semantic_effect": {
+              "support_level": 0.6,
+              "challenge_level": 0.38,
+              "structure_level": 0.64,
+              "teaching_style_note": "Condense the concept into a short set of takeaways."
+            },
+            "rendering_info": {
+              "topic": "gradient descent",
+              "concept_id": "learning_rate",
+              "tutor_message": "In one sentence: learning rate matters because it changes the next training decision. If you know what signal it carries and how that signal enters the update, you understand its role in gradient descent.",
+              "action_label": "summarize"
+            }
+          },
+          "outcome": {
+            "profile_name": "deep_dive_learner",
+            "topic": "gradient descent",
+            "concept_id": "learning_rate",
+            "tutor_message": "In one sentence: learning rate matters because it changes the next training decision. If you know what signal it carries and how that signal enters the update, you understand its role in gradient descent.",
+            "student_message": "I understand the label for learning rate, but I\u2019m still looking for the causal story: what it changes, what it depends on, and why that matters for optimization.",
+            "mastery_before": 0.5,
+            "mastery_after": 0.606985,
+            "learning_gain": 0.106985,
+            "confusion": 0.18333719999999998,
+            "engagement": 0.6155400000000001,
+            "confidence": 0.7771076303482114,
+            "curiosity": 1.0,
+            "cognitive_load": 0.18885000000000002,
+            "action_preference": 0.4,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": false,
+            "claims_understood": {
+              "gradient": [
+                "A gradient points in the direction of steepest increase.",
+                "Optimization moves opposite the gradient to reduce loss."
+              ],
+              "loss_function": [
+                "The loss function measures prediction error.",
+                "Training tries to reduce loss by updating parameters."
+              ],
+              "learning_rate": [
+                "The learning rate controls update step size.",
+                "Large learning rates can destabilize optimization."
+              ],
+              "gradient_descent_update": [],
+              "chain_rule": [],
+              "backpropagation": [],
+              "momentum": [],
+              "regularization": []
+            },
+            "goal_progress": 0.25
+          },
+          "interpreted": {
+            "learning_gain": 0.106985,
+            "confusion": 0.18333719999999998,
+            "engagement": 0.6155400000000001,
+            "mastery_after": 0.606985,
+            "goal_progress": 0.25,
+            "checkpoint_correct": true,
+            "advanced_to_next_concept": false,
+            "action_preference": 0.4
+          },
+          "reward": 0.51194948,
+          "reward_breakdown": {
+            "terms": {
+              "learning_gain": 0.0962865,
+              "goal_progress": 0.0875,
+              "action_fit": 0.1,
+              "engagement": 0.09233100000000001,
+              "confusion_penalty": -0.06416801999999999,
+              "advance_bonus": 0.0,
+              "checkpoint_bonus": 0.2
+            },
+            "total_reward": 0.51194948
+          }
+        }
+      ]
+    }
+  }
+}

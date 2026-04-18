@@ -1,0 +1,410 @@
+:root {
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111;
+  background: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.policyCard {
+  border: 1px solid #111;
+  padding: 16px;
+}
+
+.policyCard.outline {
+  background: #fff;
+}
+
+.policyCard.solid {
+  background: #f7f7f7;
+}
+
+.policyTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.policyMetrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.policyMetrics span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.policyMetrics strong {
+  font-size: 16px;
+}
+
+.userSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.userSelector button {
+  border: 1px solid #111;
+  background: #fff;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.userSelector button.active {
+  background: #111;
+  color: #fff;
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 14px;
+}
+
+.summaryTable,
+.transcriptCard {
+  border: 1px solid #d8d8d8;
+  padding: 14px;
+}
+
+.summaryTable h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.summaryTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.summaryTable th,
+.summaryTable td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 10px 8px;
+  font-size: 13px;
+}
+
+.summaryTable th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+}
+
+.transcriptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.transcriptTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.turnMiniStack {
+  display: grid;
+  gap: 10px;
+}
+
+.turnMini {
+  border: 1px solid #ececec;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.turnMiniTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.tutorLine,
+.studentLine {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tutorLine {
+  margin-bottom: 8px;
+}
+
+.studentLine {
+  padding-top: 8px;
+  border-top: 1px solid #ececec;
+}
+
+.learnerProfileCard {
+  border: 1px solid #d8d8d8;
+  background: #f9f9f9;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.learnerName {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111;
+}
+
+.learnerDescription {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.actionBadge {
+  font-size: 11px;
+  text-transform: none;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #f0f0f0;
+  border: 1px solid #d8d8d8;
+}
+
+.actionBadge.actionDiffers {
+  background: #fff3e0;
+  border-color: #ffb74d;
+  font-weight: 600;
+}
+
+.turnMetrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ececec;
+  font-size: 11px;
+  color: #666;
+}
+
+.turnMetrics span {
+  font-weight: 500;
+}
+
+.betterMetric {
+  background: #e8f5e9;
+  font-weight: 600;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.actionChart,
+.goalChart {
+  border: 1px solid #d8d8d8;
+  padding: 14px;
+  background: #fff;
+}
+
+.actionChart h3,
+.goalChart h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.actionChartBars {
+  display: grid;
+  gap: 12px;
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.actionLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #111;
+}
+
+.actionBars {
+  display: grid;
+  gap: 3px;
+}
+
+.actionBarRow {
+  display: grid;
+  grid-template-columns: 15px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.policyLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+}
+
+.actionBarTrack {
+  height: 18px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 2px;
+  position: relative;
+}
+
+.actionBar {
+  height: 100%;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  transition: width 0.2s ease;
+}
+
+.actionBar span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.actionBar.personalized {
+  background: #111;
+}
+
+.actionBar.noPolicy {
+  background: #999;
+}
+
+.chartSvg {
+  display: block;
+  margin: 0 auto;
+}
+
+.learningCurve {
+  border: 1px solid #d8d8d8;
+  padding: 14px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.learningCurve h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.heatmapContainer {
+  border: 1px solid #d8d8d8;
+  padding: 14px;
+  background: #fff;
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.heatmapContainer h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.scoreHeatmap {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.scoreHeatmap th,
+.scoreHeatmap td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  font-weight: 500;
+}
+
+.scoreHeatmap th {
+  background: #fafafa;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+}
+
+.scoreHeatmap td:first-child,
+.scoreHeatmap th:first-child {
+  text-align: left;
+  font-weight: 600;
+  background: #fafafa;
+}
+
+.empty {
+  padding: 40px 24px;
+  border: 1px dashed #bbb;
+  text-align: center;
+}
+
+@media (max-width: 1400px) {
+  .policyMetrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .topGrid,
+  .chartsGrid,
+  .transcriptGrid,
+  .comparisonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .policyMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

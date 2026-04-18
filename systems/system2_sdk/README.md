@@ -1,22 +1,27 @@
-System 2 SDK is the reusable contract and orchestration layer that sits between
-the policy engine and any concrete application environment.
+System 2 SDK is the reusable cognitive middleware layer that sits between the
+policy engine and any concrete application environment.
 
-Core responsibilities:
-- define portable turn-level data types
-- define abstract interfaces applications must implement
-- validate canonical invariants
-- provide a small runtime helper for the shared closed-loop turn
-- provide logging hooks for replay / observability
+It owns:
+- portable shared data types
+- abstract interfaces applications must implement
+- invariant validation
+- a small canonical runtime helper for one closed-loop turn
+- logging / replay primitives
+- stream events for observability and dashboard replay
 
-Non-responsibilities:
-- defining a tutor action bank
-- defining an EEG benchmark state schema
-- hardcoding reward semantics for any one application
+It does not own:
+- tutor-specific state features
+- tutor-specific action semantics
+- one fixed reward formula for every application
 
-Applications such as the 3A EEG benchmark and the 3B tutor demo should import
-this package and provide their own implementations of:
-- StateBuilder
-- ActionRegistry
-- InteractionModel
-- OutcomeInterpreter
-- RewardModel
+Applications should import this package and define their own:
+- `StateBuilder`
+- `ActionRegistry`
+- `InteractionModel`
+- `OutcomeInterpreter`
+- `RewardModel`
+
+Observability guidance:
+- serialize canonical SDK objects instead of inventing a second schema
+- use `StreamEvent` for replay and dashboard rendering
+- prefer `build_turn_stream_events(...)` from a complete `TurnLog`

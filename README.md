@@ -1,101 +1,159 @@
-# Emotiv Learn
+# Sena
 
-This repo is the current working version of the Emotiv Learn policy-engine playground.
+Sena is now organized around three active pieces:
 
-## What This Repo Is
+- `System 1`: a reusable personalized decision engine
+- `System 2`: a reusable cognitive middleware SDK
+- `System 3`: a tutor demo / simulator built on top of Systems 1 and 2
 
-This codebase is centered on a split-latent simulator for adaptive tutoring:
+The repo also includes a polished observability surface for replaying the cognitive pipeline and presentation artifacts for the hackathon story.
 
-- `knowledge_state` models what the learner knows
-- `neuro_state` models workload / fatigue / attention-like neurocognitive factors
-- behavioral signals are emitted from both
-- EEG-like signals are emitted primarily from `neuro_state`
+## Repo Map
 
-The point of the simulator is not to reproduce real EEG perfectly. It is to test whether the decision engine benefits from an additional EEG-informed observation channel beyond behavior alone.
-
-## Core Validation Question
-
-Can the policy engine learn better tutoring actions when it gets:
-
-1. behavior-only state
-2. behavior + EEG-like state
-3. behavior + EEG-like state + optional tutor-facing proxy features
-
-## Important Architectural Assumption
-
-The current repo does **not** rely on real EEG ingestion or old dataset-conditioned retrieval.
-
-The EEG path is now:
-
-- synthetic
-- dynamic
-- consistent with the simulator's hidden neuro state
-- intended to validate the policy architecture, not physiological realism
-
-## Main Components
-
-- `emotiv_learn/decision_engine.py`
-  Contextual bandit with generic + personalized residual weights.
-- `emotiv_learn/student_model.py`
-  Split-latent learner simulator.
-- `emotiv_learn/eeg.py`
-  Synthetic EEG emission layer.
-- `emotiv_learn/live_training.py`
-  State construction logic and ablation profiles.
-- `emotiv_learn/reward_model.py`
-  Deterministic reward functions from interpreted learner signals.
-- `scripts/experiments/live_policy_comparison.py`
-  Main live experiment runner.
-- `scripts/experiments/run_live_state_ablation.py`
-  Runs the three ablation profiles.
-- `scripts/experiments/plot_state_ablation.py`
-  Renders matplotlib plots from ablation outputs.
-
-## How Another Agent Should Think About This Repo
-
-If you are another LLM or coding agent:
-
-- treat `SIMULATOR_ARCHITECTURE.md` as the design source of truth
-- assume synthetic EEG only
-- do not reintroduce the removed real-data ingestion path unless explicitly requested
-- focus on:
-  - reward design
-  - action separation
-  - state usefulness
-  - ablation interpretation
-
-## Most Useful Commands
-
-Run the ablation:
-
-```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/run_live_state_ablation.py \
-  --turns 10 \
-  --seed 17 \
-  --model gpt-5.4-mini \
-  --modes personalized,generic,fixed_no_change \
-  --eeg-mode synthetic \
-  --output-dir /Users/anish/PERSONAL/emotiv_learn/artifacts/state_ablation
+```text
+.
+├── README.md                               # main contributor / run guide
+├── CONTEXT_DUMP.md                         # temporary long-form project context for teammate or LLM handoff
+├── artifacts/
+│   └── replays/
+│       └── sample_stream.jsonl             # canonical sample event stream for observability / replay
+├── observability/                          # Sena dashboard + static presentation artifacts
+│   ├── index.html                          # Vite entrypoint
+│   ├── chat-comparison.html                # light-mode side-by-side tutor comparison artifact
+│   ├── comparison.html                     # alternate static comparison artifact
+│   ├── package.json                        # frontend tooling
+│   ├── public/
+│   │   ├── system3_comparison.json         # demo comparison data
+│   │   └── system3_demo.json               # demo pipeline data
+│   └── src/
+│       ├── App.jsx                         # Sena observability application root
+│       ├── ChatComparisonApp.jsx           # presentation chat comparison UI
+│       ├── ComparisonApp.jsx               # secondary comparison UI
+│       ├── components/                     # dashboard layout, canvas, panels, ui primitives
+│       ├── config/                         # navigation + pipeline topology config
+│       ├── replay/                         # replay view-model helpers
+│       └── styles/                         # dashboard styling
+├── systems/
+│   ├── system1_decision/                   # contextual bandit engine
+│   │   ├── engine.py                       # generic + personalized residual learner
+│   │   └── schemas.py                      # canonical action bank + decision traces
+│   ├── system2_sdk/                        # reusable middleware contract
+│   │   ├── core/interfaces.py              # abstract app hooks
+│   │   ├── core/runtime.py                 # canonical turn runner
+│   │   ├── core/streaming.py               # stream event schema for observability
+│   │   ├── core/types.py                   # shared SDK dataclasses
+│   │   └── core/validation.py              # invariants and schema checks
+│   └── system3b_tutor/                     # tutor-specific app / simulator (current package path)
+│       ├── eeg.py                          # synthetic EEG observation layer
+│       ├── live_training.py                # tutor state builder + feature profiles
+│       ├── llm_contracts.py                # tutor / student / interpreter prompts
+│       ├── reward_model.py                 # tutor reward shaping
+│       ├── student_model.py                # split-latent learner simulator
+│       ├── tutor_proxy.py                  # tutor-facing proxy features
+│       └── runs/
+│           ├── knowledge_policy_comparison.py  # offline policy comparison loop
+│           ├── live_llm_training_loop.py       # single-user live loop
+│           └── live_policy_comparison.py       # multi-policy live comparison
+└── tests/
+    ├── test_system1_engine.py              # System 1 sanity checks
+    ├── test_system2_streaming.py           # System 2 stream contract checks
+    └── test_system3b_student_model.py      # System 3 simulator checks
 ```
 
-Plot the ablation:
+## What Each System Owns
+
+### System 1
+
+`systems/system1_decision` owns action scoring, action selection, online updates, and optional per-user residual personalization. It should not own reward semantics or application-specific state design.
+
+### System 2
+
+`systems/system2_sdk` is the reusable contract between raw observations, featurized state, interaction effects, interpreted outcomes, reward events, and replay events. Application authors should be able to import this package and define their own state/action/reward semantics on top of it.
+
+### System 3
+
+`systems/system3b_tutor` is the current application layer. It defines:
+
+- a tutor-specific learner simulator
+- tutor / student / interpreter prompt contracts
+- a synthetic EEG observation layer
+- runnable policy comparison loops
+
+This is a demo / experimentation surface, not a neuroscience benchmark package.
+
+## Quick Start
+
+### Python checks
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/plot_state_ablation.py \
-  --input-dir /Users/anish/PERSONAL/emotiv_learn/artifacts/state_ablation \
-  --output /Users/anish/PERSONAL/emotiv_learn/artifacts/state_ablation/ablation_summary.png
+pytest -q tests/test_system1_engine.py tests/test_system2_streaming.py tests/test_system3b_student_model.py
 ```
 
-Run one live simulator workflow:
+### Run the offline tutor policy comparison
 
 ```bash
-python3 /Users/anish/PERSONAL/emotiv_learn/scripts/experiments/live_llm_training_loop.py \
+python3 -m systems.system3b_tutor.runs.knowledge_policy_comparison --turns 10 --seed 7
+```
+
+### Run the live tutor loop
+
+This uses real OpenAI calls and expects `OPENAI_API_KEY` in a local `.env`.
+
+```bash
+python3 -m systems.system3b_tutor.runs.live_llm_training_loop \
   --topic "gradient descent" \
-  --user-id live_user_a \
+  --user-id learner_a \
   --turns 5 \
   --difficulty medium \
-  --model gpt-5.4-mini \
-  --db-path /Users/anish/PERSONAL/emotiv_learn/artifacts/live_llm_engine.sqlite \
-  --output /Users/anish/PERSONAL/emotiv_learn/artifacts/live_llm_turns.json \
+  --model gpt-4o-mini \
+  --db-path artifacts/live_llm_engine.sqlite \
+  --output artifacts/live_llm_turns.json \
   --eeg-mode synthetic
 ```
+
+### Run the live multi-policy comparison
+
+```bash
+python3 -m systems.system3b_tutor.runs.live_policy_comparison \
+  --turns 10 \
+  --seed 17 \
+  --model gpt-4o-mini \
+  --output artifacts/live_policy_comparison.json \
+  --events-output artifacts/live_policy_events.jsonl \
+  --policy-modes personalized,generic,fixed_no_change,random \
+  --state-profile current_eeg \
+  --eeg-mode synthetic
+```
+
+### Launch observability
+
+```bash
+cd observability
+npm install
+npm run dev
+```
+
+Then open:
+
+- `/` for the `Sena` observability dashboard
+- `/chat-comparison.html` for the light-mode side-by-side tutor comparison artifact
+- `/comparison.html` for the alternate comparison page
+
+## Contribution Notes
+
+- Keep `System 1`, `System 2`, and `System 3` separated conceptually.
+- Put reusable contracts in `system2_sdk`, not in the tutor app.
+- Put tutor-specific heuristics and prompts in `system3b_tutor`, not in the SDK.
+- Keep observability consuming replay / stream primitives instead of inventing a second schema.
+- Avoid reintroducing deleted neuroscience benchmark code into this main repo unless that work is explicitly being revived.
+
+## Current Project Position
+
+This repo is now optimized for:
+
+- a clean hackathon handoff
+- a coherent demo story
+- a reusable middleware + observability narrative
+- a lightweight tutor simulation surface for policy comparisons
+
+It is not currently positioned as a real-data EEG validation repository.
