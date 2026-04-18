@@ -1,0 +1,17 @@
+benchmark_name: cog_bci_nback_workload
+dataset_root: data/cog_bci
+task_name: N-Back
+window_length_s: 4.0
+window_step_s: 2.0
+sample_rate_hz: 500
+frequency_bands:
+  theta: [4.0, 8.0]
+  alpha: [8.0, 13.0]
+  beta: [13.0, 30.0]
+  gamma: [30.0, 45.0]
+grouped_cv_folds: 5
+model_family: random_forest
+metrics:
+  - balanced_accuracy
+  - macro_f1
+output_dir: neuro_validate/artifacts/cog_bci_nback

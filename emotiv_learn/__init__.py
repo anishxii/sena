@@ -1,4 +1,4 @@
-"""Core package for the Emotiv Learn decision policy system."""
+"""Legacy package exports for backward compatibility during the refactor."""
 
 from .decision_engine import DecisionEngine
 from .eeg import (
@@ -11,7 +11,7 @@ from .eeg import (
     build_eeg_provider,
 )
 from .llm_contracts import compute_reward_from_interpreted
-from .schemas import ACTION_BANK
+from systems.system1_decision.schemas import ACTION_BANK
 from .student_model import HiddenKnowledgeState, HiddenKnowledgeStudent, KnowledgeState, NeuroState, default_hidden_knowledge_state
 
 __all__ = [
